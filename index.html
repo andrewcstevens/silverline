@@ -194,7 +194,7 @@
         <div class="wb-odds" id="upOdds">—</div>
       </div>
       <div class="winbox golden">
-        <div class="wb-label">Golden Window</div>
+        <div class="wb-label" id="gwLabel">Golden Window</div>
         <div class="wb-time" id="gwTime">—</div>
         <div class="wb-odds" id="gwOdds">—</div>
         <div class="wdstrip" id="gwStrip"></div>
@@ -461,16 +461,14 @@ function nextUpcoming(edges, now){
     out.push({ slot:e.slot, direction:e.direction, p_win:e.p_win, n:e.n, edge_pp:e.edge_pp,
       significant:e.significant, next_when:when, minutes_until:minsUntil, next_at:`${when} ${e.slot} ET`, day_iso:isoDate(day) });
   }
-  const pos = out.filter(x=>x.edge_pp>0);
-  const rec = pos.length ? pos.reduce((a,b)=>b.minutes_until<a.minutes_until?b:a) : (out.length?out.reduce((a,b)=>b.minutes_until<a.minutes_until?b:a):null);
-  return { recommended: rec, all: out };
+  return { all: out };
 }
 
 function enrichUpcoming(upc, an){
   if (!upc) return upc;
   const sw = an.slot_weekday||{};
-  let rec = upc.recommended;
-  if (rec && rec.day_iso){
+  const enriched = (upc.all||[]).map(rec=>{
+    if(!rec.day_iso){ return rec; }
     const wd = wdOf(dateFromISO(rec.day_iso));
     const direction = rec.direction||'Over';
     const arr = sw[rec.slot]||[];
@@ -489,8 +487,25 @@ function enrichUpcoming(upc, an){
       rec.today_ci_hi = cell.ci_hi;
     }
     rec.by_weekday = byDay;
-    upc.recommended = rec;
-  }
+    // Effective rate = weekday-specific when it has enough samples, else overall.
+    const useToday = rec.p_win_today!=null && rec.n_today>=50;
+    rec.eff_p = useToday ? rec.p_win_today : rec.p_win;
+    rec.eff_sig = useToday ? true : !!rec.significant;
+    rec.eff_is_today = useToday;
+    return rec;
+  });
+  // Golden Window = the upcoming slot with the highest effective win rate that is
+  // both significant AND above break-even (50%). Tie-break: soonest.
+  // If nothing clears break-even, fall back to the highest significant effective
+  // rate (shown as "best available", verdict WAIT) so the box stays honest and
+  // never labels a sub-coin-flip play as "golden".
+  const sig = enriched.filter(r=>r.eff_sig);
+  const aboveBE = sig.filter(r=>r.eff_p>0.5);
+  const rank = (a,b)=> Math.abs(b.eff_p-a.eff_p)>1e-9 ? (b.eff_p-a.eff_p) : (a.minutes_until-b.minutes_until);
+  const golden = aboveBE.length ? aboveBE.slice().sort(rank)[0]
+    : (sig.length ? sig.slice().sort(rank)[0] : null);
+  upc.all = enriched;
+  upc.recommended = golden;
   return upc;
 }
 
@@ -677,12 +692,18 @@ function renderBuySignal(){
     $('upOdds').innerHTML = `<span class="dir ${dirCls(nxt.direction)}">${nxt.direction}</span><span class="wpct">${fmtPct(nxt.p_win)}</span>` + (nxt.p_win_today!=null?`<span class="todaylbl">${nxt.today_name} rate</span>`:'');
   } else { $('upTime').textContent='No upcoming slot.'; }
 
-  // ---- Golden Window (best-edge upcoming slot) ----
-  if(!r){ $('gwTime').textContent='No golden slot right now.'; $('gwOdds').textContent=''; $('bsVerd').textContent='WAIT'; return; }
+  // ---- Golden Window (best effective-rate upcoming slot, above break-even) ----
+  if(!r){
+    if($('gwLabel')) $('gwLabel').textContent='No Golden Window';
+    $('gwTime').textContent='No qualifying slot right now.'; $('gwOdds').textContent='';
+    $('gwStrip').innerHTML=''; $('gwMeta').innerHTML=''; $('bsVerd').textContent='WAIT'; return;
+  }
   const cls = dirCls(r.direction);
   const p_overall = r.p_win;
-  const hasToday = r.p_win_today!=null && r.n_today>=50;
-  const p = hasToday ? r.p_win_today : p_overall;
+  const hasToday = r.eff_is_today;
+  const p = r.eff_p;
+  const aboveBE = p>0.5;
+  if($('gwLabel')) $('gwLabel').textContent = aboveBE ? 'Golden Window' : 'Best Available · below break-even';
   $('gwTime').innerHTML = `<span class="big">${r.next_at}</span>in ${minStr(r.minutes_until)} · ${etToPt(r.slot)} PT`;
   $('gwOdds').innerHTML = `<span class="dir ${cls}">${r.direction}</span><span class="wpct">${fmtPct(p)}</span>` + (hasToday?`<span class="todaylbl">${r.today_name} rate</span>`:'');
   let strip = '';
@@ -690,7 +711,7 @@ function renderBuySignal(){
     strip = r.by_weekday.map(d=>`<span class="wd${d.is_today?' on':''}">${d.weekday} ${fmtPct(d.p_win)}</span>`).join('');
   }
   $('gwStrip').innerHTML = strip;
-  $('gwMeta').innerHTML = `overall ${fmtPct(p_overall)} · n=${r.n}${hasToday?` · ${r.today_name} n=${r.n_today}`:''} · ${r.significant?'significant':'not sig.'}`;
+  $('gwMeta').innerHTML = `${hasToday?(r.today_name+' rate'):'overall'} ${fmtPct(p)} · n=${hasToday?r.n_today:r.n} · ${r.eff_sig?'significant':'not sig.'}${hasToday?` · overall ${fmtPct(p_overall)}`:''}`;
 
   // ---- Bet / payout / verdict (tied to golden window) ----
   const bet = parseFloat($('bsBet').value)||0;
