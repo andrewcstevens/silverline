@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>BTC 15-Min Wizard · Edge Finder</title>
+<title>Silverline · BTC 15-Min Edge Finder</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+<meta name="description" content="Silverline — a 24/7 historical-edge finder for Coinbase BTC-USD 15-minute prediction markets." />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,9 +28,11 @@
   /* topbar */
   .topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:22px}
   .logo{display:flex;align-items:center;gap:11px}
-  .logo svg{width:34px;height:34px;flex:none}
-  .logo h1{font-size:20px;margin:0;letter-spacing:.2px;font-weight:600;font-family:var(--display)}
+  .logo .wordmark{height:30px;width:auto;flex:none;filter:saturate(.6) brightness(1.15)}
   .logo .sub{font-size:11.5px;color:var(--mut2);font-family:var(--mono);letter-spacing:.5px;text-transform:uppercase}
+  .vbadge{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.3px;color:#0d1117;background:linear-gradient(180deg,#e5e7eb,#9ca3af);padding:2px 7px;border-radius:5px;flex:none}
+  .build-stamp{font-family:var(--mono);font-size:11px;color:var(--mut2);letter-spacing:.3px}
+  .build-stamp b{color:var(--mut);font-weight:600}
   .price-pill{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end}
   .price{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:.3px;font-variant-numeric:tabular-nums}
   .price .cur{color:var(--mut2);font-size:14px;margin-right:3px}
@@ -163,15 +167,9 @@
 <div class="wrap">
   <div class="topbar">
     <div class="logo">
-      <svg viewBox="0 0 40 40" fill="none" aria-label="logo">
-        <rect x="2" y="2" width="36" height="36" rx="9" stroke="#2dd4bf" stroke-width="2"/>
-        <path d="M11 25 L17 18 L22 22 L29 13" stroke="#2dd4bf" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="29" cy="13" r="2.4" fill="#fbbf24"/>
-      </svg>
-      <div>
-        <h1>BTC 15-Min Wizard</h1>
-        <div class="sub">Prediction-Market Edge Finder</div>
-      </div>
+      <img src="assets/silverline-light.png" alt="Silverline" class="wordmark">
+      <span class="vbadge">v2.0</span>
+      <span class="sub">BTC 15-Min Edge Finder</span>
     </div>
     <div class="price-pill">
       <div class="price"><span class="cur">$</span><span id="price">—</span></div>
@@ -256,8 +254,8 @@
   </div>
 
   <div class="foot">
-    <strong>How it works.</strong> The Wizard pulls Coinbase BTC-USD 15-minute candles
-    (aligned to :00/:15/:30/:45 of each hour), keeps weekdays, and computes the close-to-close
+    <strong>How it works.</strong> Silverline pulls Coinbase BTC-USD 15-minute candles
+    (aligned to :00/:15/:30/:45 of each hour), keeps all seven days (markets trade 24/7), and computes the close-to-close
     return for each 15-minute snapshot. Slots are split into a Day session (8a–8p ET) and a
     Night session (8p–8a ET); each axis shows ET on top with your San Francisco (Pacific) time
     beneath — PT = ET − 3h. "Win %" is the historical share of snapshots that moved in the
@@ -267,12 +265,14 @@
     <br><br>
     <strong>Honest caveat.</strong> This is a historical backtest and probability tool,
     not financial advice. Bitcoin is a near-random walk at the 15-minute scale — overall
-    the market has been roughly 50.4% up on weekdays over the sample, and although the
+    the market has been roughly 50.4% up over the sample, and although the
     strongest edges cluster in the overnight/low-liquidity hours, most time-of-day edges are
     <em>not</em> statistically significant once you account for
     sample size and multiple comparisons. Treat any single slot's win rate as a weak,
     regime-dependent signal, never a guarantee. Past performance does not predict future
     results. Data source: Coinbase Exchange public API (BTC-USD).
+    <br><br>
+    <span class="build-stamp">Silverline <b>v2.0</b> · model data through <b id="buildDataEnd">—</b> · build <b>2026-08-28</b></span>
   </div>
   </div><!-- /tab-edge -->
 
@@ -537,6 +537,7 @@ function renderStatus(s){
   $('kPrice').textContent = s.price ? fmtMoney(s.price) : '—';
   $('kPriceCap').textContent = 'Coinbase spot · updated '+new Date(s.price_time).toLocaleTimeString('en-US',{timeZone:'America/New_York'});
   $('clock').textContent = s.now_et + ' · ' + (s.session||'—');
+  if(an && an.data_end && $('buildDataEnd')) $('buildDataEnd').textContent = an.data_end.slice(0,16).replace('T',' ')+' UTC';
 }
 
 function renderNow(){
