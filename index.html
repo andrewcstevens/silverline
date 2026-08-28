@@ -394,8 +394,8 @@ function buildStatus(spot){
   const sm = Math.floor((m.hour*60+m.minute)/15)*15;
   const curSlot = String(Math.floor(sm/60)).padStart(2,'0')+':'+String(sm%60).padStart(2,'0');
   const wd = m.weekday;
-  const inBH = wd<5 && ('08:00'<=curSlot && curSlot<'20:00');
-  const session = wd<5 ? (('08:00'<=curSlot && curSlot<'20:00') ? 'DAY (8a-8p ET)' : 'NIGHT (8p-8a ET)') : 'weekend';
+  const inBH = ('08:00'<=curSlot && curSlot<'20:00');
+  const session = ('08:00'<=curSlot && curSlot<'20:00') ? 'DAY (8a-8p ET)' : 'NIGHT (8p-8a ET)';
   const nowStr = `${m.y}-${m.mo}-${m.d} ${String(m.hour).padStart(2,'0')}:${String(m.minute).padStart(2,'0')} ET`;
   return {
     price: spot? spot.price : null,
@@ -415,7 +415,6 @@ function nextLiteralSlot(now, slots, an){
   let day = dateFromISO(`${now.y}-${now.mo}-${now.d}`);
   let dayDiff = 0;
   if (slotMin >= 24*60){ slotMin -= 24*60; day = addDays(day,1); dayDiff = 1; }
-  while (wdOf(day) >= 5){ day = addDays(day,1); dayDiff += 1; }  // skip Sat/Sun
   const slot = String(Math.floor(slotMin/60)).padStart(2,'0')+':'+String(slotMin%60).padStart(2,'0');
   const stat = findStat(slots, slot);
   if (!stat) return null;
@@ -430,7 +429,7 @@ function nextLiteralSlot(now, slots, an){
     minutes_until: minsUntil, next_when: when, next_at: `${when} ${slot} ET`, day_iso: isoDate(day) };
   const sw = an.slot_weekday||{};
   const arr = sw[slot]||[];
-  const cell = wd<5 && wd<arr.length ? arr[wd] : null;
+  const cell = wd<arr.length ? arr[wd] : null;
   if (cell){
     const p_up_t = cell.p_up||0.5;
     out.p_win_today = direction==='Over' ? p_up_t : 1-p_up_t;
@@ -449,11 +448,10 @@ function nextUpcoming(edges, now){
     const [sh,sm] = e.slot.split(':').map(Number);
     const slotMin = sh*60+sm;
     let day, minsUntil, when, dayDiff;
-    if (now.weekday<5 && slotMin>curMin){
+    if (slotMin>curMin){
       day = etToday; dayDiff=0; minsUntil = slotMin-curMin; when='today';
     } else {
       let d = addDays(etToday,1); dayDiff=1;
-      while (wdOf(d) >= 5){ d = addDays(d,1); dayDiff+=1; }
       day = d;
       minsUntil = dayDiff*1440 + slotMin - curMin;
       when = isoDate(d)===tomISO ? 'tomorrow' : WD_NAMES[wdOf(d)];
@@ -475,9 +473,9 @@ function enrichUpcoming(upc, an){
     const byDay = arr.map((c,i)=>{
       const p_up = c.p_up||0.5;
       const p_win = direction==='Over' ? p_up : 1-p_up;
-      return { weekday:c.weekday, p_win, n:c.n||0, is_today: i===wd && wd<5 };
+      return { weekday:c.weekday, p_win, n:c.n||0, is_today: i===wd };
     });
-    const cell = wd<5 && wd<arr.length ? arr[wd] : null;
+    const cell = wd<arr.length ? arr[wd] : null;
     if (cell){
       const p_up = cell.p_up||0.5;
       rec.p_win_today = direction==='Over' ? p_up : 1-p_up;
@@ -494,14 +492,17 @@ function enrichUpcoming(upc, an){
     rec.eff_is_today = useToday;
     return rec;
   });
-  // Golden Window = the upcoming slot with the highest effective win rate that is
-  // both significant AND above break-even (50%). Tie-break: soonest.
+  // Golden Window = the SOONEST upcoming slot whose effective win rate is both
+  // significant AND above break-even (50%) — i.e. your next statistically justified
+  // bet. Tie-break: highest rate. This keeps it actionable ("when's my next real
+  // opportunity?") rather than pointing at a far-off highest-edge slot; the ranked
+  // table below already surfaces the highest-edge options for those willing to wait.
   // If nothing clears break-even, fall back to the highest significant effective
   // rate (shown as "best available", verdict WAIT) so the box stays honest and
   // never labels a sub-coin-flip play as "golden".
   const sig = enriched.filter(r=>r.eff_sig);
   const aboveBE = sig.filter(r=>r.eff_p>0.5);
-  const rank = (a,b)=> Math.abs(b.eff_p-a.eff_p)>1e-9 ? (b.eff_p-a.eff_p) : (a.minutes_until-b.minutes_until);
+  const rank = (a,b)=>{ const dt=a.minutes_until-b.minutes_until; if(Math.abs(dt)>1e-9) return dt; return b.eff_p-a.eff_p; };
   const golden = aboveBE.length ? aboveBE.slice().sort(rank)[0]
     : (sig.length ? sig.slice().sort(rank)[0] : null);
   upc.all = enriched;
