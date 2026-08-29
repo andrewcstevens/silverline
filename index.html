@@ -813,8 +813,9 @@ const STORE = safeStorage();
 
 // --- Browser-local ledger (stays in your browser, never sent anywhere) ---
 function loadLS(){
-  try { const raw = STORE.getItem(LS_KEY); if (raw) return JSON.parse(raw); } catch(e){}
-  // seed once: the 7 real positions logged so far (migration guard; key bumped per batch)
+  let stored=null;
+  try { const raw = STORE.getItem(LS_KEY); if(raw) stored=JSON.parse(raw); } catch(e){}
+  // canonical seed — updated as positions settle; MERGED into existing ledgers on reload (never wipes user data, no key bump)
   const seed = [
     {id:newId(),trade_date:'2026-08-25',slot_et:'04:30',slot_pt:'01:30',side:'under',bet:24.99,payout:48.05,result:'win',source:'screenshot',note:'BTC 15min Under $78,500 · paid $24.99 · resolved Under win'},
     {id:newId(),trade_date:'2026-08-26',slot_et:'05:30',slot_pt:'02:30',side:'under',bet:18.25,payout:43.45,result:'win',source:'screenshot',note:'BTC 15min Under $78,502.45 target · 43c market · paid $18.25 · 02:30 PT · resolved win'},
@@ -822,11 +823,27 @@ function loadLS(){
     {id:newId(),trade_date:'2026-08-26',slot_et:'06:00',slot_pt:'03:00',side:'under',bet:99.98,payout:147.04,result:'loss',source:'screenshot',note:'BTC 15min Under $78,432.41 target · 66c market · 147.04 contracts · paid $99.98 incl $2.94 fees · placed 6:06 ET · resolved LOSS (price closed above target)'},
     {id:newId(),trade_date:'2026-08-26',slot_et:'06:15',slot_pt:'03:15',side:'over',bet:37.74,payout:54.71,result:'win',source:'screenshot',note:'BTC 15min Over $78,435.97 target · 67c market · 54.71 contracts · paid $37.74 incl $1.09 fees · placed 6:17 ET · resolved WIN (settled 8/26, +$16.97 net)'},
     {id:newId(),trade_date:'2026-08-26',slot_et:'10:30',slot_pt:'07:30',side:'under',bet:24.98,payout:32.45,result:'win',source:'screenshot',note:'BTC 15min Under $78,237.99 target · 75c market · 32.45 contracts · paid $24.98 incl $0.65 fees · placed 7:38 PT / 10:38 ET · resolved WIN (price closed ~$77,937, under target)'},
-    {id:newId(),trade_date:'2026-08-29',slot_et:'04:30',slot_pt:'01:30',side:'over',bet:29.99,payout:49.99,result:'pending',source:'screenshot',note:'BTC 15min Over $77,518.11 target · 58c market · 49.99 contracts · paid $29.99 incl $1.00 fees · placed 1:21 PT / 4:21 ET · resolves 4:30 ET · PENDING (open)'},
+    {id:newId(),trade_date:'2026-08-29',slot_et:'04:30',slot_pt:'01:30',side:'over',bet:29.99,payout:49.99,result:'pending',source:'screenshot',note:'BTC 15min Over $77,518.11 target · 58c market · 49.99 contracts · paid $29.99 incl $1.00 fees · placed 1:21 PT / 4:21 ET · 4:30 ET spot close $77,594.12 > strike (likely Over win) · awaiting your confirmation of Coinbase contract result'},
   ];
-  const seeded = {records:seed, seeded_at:new Date().toISOString()};
-  try { STORE.setItem(LS_KEY, JSON.stringify(seeded)); } catch(e){}
-  return seeded;
+  // fresh load (no ledger yet): seed the whole thing
+  if(!stored || !Array.isArray(stored.records) || stored.records.length===0){
+    const seeded={records:seed, seeded_at:new Date().toISOString()};
+    try{STORE.setItem(LS_KEY,JSON.stringify(seeded));}catch(e){}
+    return seeded;
+  }
+  // existing ledger: merge seed updates in — add new positions, resolve pending — WITHOUT wiping user data
+  const k=r=>(r.trade_date||'')+'|'+(r.slot_et||'')+'|'+(r.side||'');
+  const idx={}; stored.records.forEach(r=>{if(r.trade_date)idx[k(r)]=r;});
+  let changed=false;
+  seed.forEach(s=>{
+    const ex=idx[k(s)];
+    if(!ex){ stored.records.push(Object.assign({},s)); changed=true; }                      // new position -> add it
+    else if(s.result!=='pending' && ex.result==='pending'){                              // settled in seed -> resolve it
+      ex.result=s.result; if(s.payout)ex.payout=s.payout; if(s.note)ex.note=s.note; changed=true;
+    }
+  });
+  if(changed){ try{STORE.setItem(LS_KEY,JSON.stringify(stored));}catch(e){} }
+  return stored;
 }
 function saveLS(d){ try { STORE.setItem(LS_KEY, JSON.stringify(d)); } catch(e){} }
 function realizedProfit(r){ if(r.result==='win') return (r.payout||0)-(r.bet||0); if(r.result==='loss') return -(r.bet||0); return 0; }
