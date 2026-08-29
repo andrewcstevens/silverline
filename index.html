@@ -785,7 +785,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 
 // ---------- gains tracker ----------
 let tSide='Over', tRes='pending';
-const LS_KEY = 'btcWizardTracker_v5';
+const LS_KEY = 'btcWizardTracker_v6';
 function newId(){ return Array.from({length:32},()=>Math.floor(Math.random()*16).toString(16)).join(''); }
 
 // --- Storage: discover any persistent web-storage at runtime, fall back to memory. ---
@@ -814,14 +814,15 @@ const STORE = safeStorage();
 // --- Browser-local ledger (stays in your browser, never sent anywhere) ---
 function loadLS(){
   try { const raw = STORE.getItem(LS_KEY); if (raw) return JSON.parse(raw); } catch(e){}
-  // seed once: the 5 real positions logged so far (migration guard; key bumped per batch)
+  // seed once: the 7 real positions logged so far (migration guard; key bumped per batch)
   const seed = [
     {id:newId(),trade_date:'2026-08-25',slot_et:'04:30',slot_pt:'01:30',side:'under',bet:24.99,payout:48.05,result:'win',source:'screenshot',note:'BTC 15min Under $78,500 · paid $24.99 · resolved Under win'},
     {id:newId(),trade_date:'2026-08-26',slot_et:'05:30',slot_pt:'02:30',side:'under',bet:18.25,payout:43.45,result:'win',source:'screenshot',note:'BTC 15min Under $78,502.45 target · 43c market · paid $18.25 · 02:30 PT · resolved win'},
     {id:newId(),trade_date:'2026-08-26',slot_et:'05:45',slot_pt:'02:45',side:'over',bet:9.98,payout:22.20,result:'win',source:'screenshot',note:'BTC 15min Over $78,372.69 target · 43c market · 22.2 contracts · paid $9.98 incl $0.44 fees · resolved win'},
     {id:newId(),trade_date:'2026-08-26',slot_et:'06:00',slot_pt:'03:00',side:'under',bet:99.98,payout:147.04,result:'loss',source:'screenshot',note:'BTC 15min Under $78,432.41 target · 66c market · 147.04 contracts · paid $99.98 incl $2.94 fees · placed 6:06 ET · resolved LOSS (price closed above target)'},
-    {id:newId(),trade_date:'2026-08-26',slot_et:'06:15',slot_pt:'03:15',side:'over',bet:37.74,payout:54.71,result:'pending',source:'screenshot',note:'BTC 15min Over $78,435.97 target · 67c market · 54.71 contracts · paid $37.74 incl $1.09 fees · placed 6:17 ET, resolves 6:30 ET'},
+    {id:newId(),trade_date:'2026-08-26',slot_et:'06:15',slot_pt:'03:15',side:'over',bet:37.74,payout:54.71,result:'win',source:'screenshot',note:'BTC 15min Over $78,435.97 target · 67c market · 54.71 contracts · paid $37.74 incl $1.09 fees · placed 6:17 ET · resolved WIN (settled 8/26, +$16.97 net)'},
     {id:newId(),trade_date:'2026-08-26',slot_et:'10:30',slot_pt:'07:30',side:'under',bet:24.98,payout:32.45,result:'win',source:'screenshot',note:'BTC 15min Under $78,237.99 target · 75c market · 32.45 contracts · paid $24.98 incl $0.65 fees · placed 7:38 PT / 10:38 ET · resolved WIN (price closed ~$77,937, under target)'},
+    {id:newId(),trade_date:'2026-08-29',slot_et:'04:30',slot_pt:'01:30',side:'over',bet:29.99,payout:49.99,result:'pending',source:'screenshot',note:'BTC 15min Over $77,518.11 target · 58c market · 49.99 contracts · paid $29.99 incl $1.00 fees · placed 1:21 PT / 4:21 ET · resolves 4:30 ET · PENDING (open)'},
   ];
   const seeded = {records:seed, seeded_at:new Date().toISOString()};
   try { STORE.setItem(LS_KEY, JSON.stringify(seeded)); } catch(e){}
