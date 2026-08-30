@@ -1,7 +1,7 @@
 # Silverline Command Center
 
-**Last Updated:** 2026-08-30 13:58 PT
-**Source:** GitHub repo `andrewcstevens/silverline`, branch inspection + verified workstream state + Vercel preview inspection.
+**Last Updated:** 2026-08-30 14:10 PT
+**Source:** GitHub repo `andrewcstevens/silverline`, branch inspection + verified workstream state + Vercel preview inspection + motion-study prototype deploy.
 **Maintained by:** CTO agent. Read-only reference for all sessions — Andrew should never have to relay a handoff between AI sessions.
 
 > This is a living index. Every status here is backed by a branch tip, a commit, or a documented inspection. If a status is not independently verified, it says so.
@@ -33,6 +33,7 @@
 | SYSTEST-01 Preview stress test | CTO | `ops/validation-backups` (`49d3202`) | Complete — 15/15 scenarios, 35/35 sub-assertions | No | None (gate passed) |
 | OPS-03a Durable Backup Proposal | CTO | `ops/validation-backups` (`c201b85`) | Complete (proposal, read-only) | No | Awaiting Founder decisions (§below) |
 | CTO-02 Kalshi Proxy | CTO | `feature/kalshi-proxy` (`b6ab287`) | Preview deployed — function built Ready (`λ api/kalshi`); runtime smoke blocked by team SSO | No | Founder decision #3 (open preview in browser, or disable protection, or defer) |
+| REEDING-01 Motion Study 01 | CTO | `feature/reeding-01-motion` (`5788e6c`) | Complete — prototype + technical discovery + file-level plan | No | Founder decisions #7–#10 (aesthetic confirm, replace vs parallel, intensity, reference) |
 | OPS-03b Command Center | CTO | `ops/command-center` | Complete | No | Live; updated per task |
 
 ---
@@ -47,12 +48,16 @@ Only decisions Andrew actually needs to make. Nothing here is auto-actionable un
 4. **Blocker A (refresh internals)** — `refresh_analysis.py` / `analysis.py` / `candles.parquet` live in the cron session's workspace, not in the GitHub repo or the CTO sandbox. Read them in cron session `471139aa` or paste them so the OPS-03a wiring can confirm the exact candidate write path.
 5. **Ledger opt-in** — decide whether the durable backup includes the browser ledger (`localStorage` export) or stays model-only.
 6. **Restore policy** — confirm restore stays manual-approval (no auto-rollback of a live model) under OPS-03a.
+7. **v3 aesthetic confirmation** — confirm dark/card-based as the v3 direction (the REEDING-01 prototype uses the existing tokens and they already match). Or specify a different lane.
+8. **v3 replace vs parallel** — does the v3 motion redesign replace the live v2.0 deploy outright, or ship as a parallel comparison build?
+9. **Motion intensity** — the REEDING-01 prototype is deliberately subtle. More or less pronounced?
+10. **Motion reference feel** — AlphaLedger (Behance) was the earlier UX reference. Same lane for the motion layer, or a different one?
 
 ---
 
 ## Next Automatic Action
 
-**Continue safe-mode task list.** CTO-02 preview prep is done (function built Ready; runtime smoke blocked by team SSO — a Founder decision). Proceeding to REEDING-01 (Motion Study 01 technical discovery + file-level plan), then PRE-0, then OPS-04 — all autonomous-safe on feature branches, none touching production.
+**Continue safe-mode task list.** REEDING-01 done (prototype + plan). Proceeding to PRE-0 (Price-Aware Signal Guardrails technical discovery + test plan) on a feature branch — non-production logic hardening, no deploy/merge/prod change.
 
 ## Next Task Allowed
 
