@@ -22,7 +22,12 @@ import os
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
-from kalshi_lib import handle
+# Vercel imports this module as `api.kalshi`; local tests import it as `kalshi`.
+# Try both so the entrypoint resolves in either context.
+try:
+    from kalshi_lib import handle
+except ModuleNotFoundError:
+    from api.kalshi_lib import handle
 
 
 TOKEN = os.environ.get("SILVERLINE_PROXY_TOKEN")
