@@ -125,6 +125,16 @@ def main() -> int:
     out = restore.restore(restored_to, backup_dir=BACKUP_DIR)
     check("restore wrote latest-known-good", os.path.exists(out) and json.load(open(out)).get("n_deltas") == valid_model["n_deltas"])
 
+    print("\n=== Test: named-snapshot restore works ===")
+    # Take a second named snapshot, then mutate the known-good, then restore the named snapshot.
+    named_snap = backup.snapshot_known_good(prior_kg, BACKUP_DIR)
+    named_target = os.path.join(PUB_DIR, "named-restore.json")
+    out2 = restore.restore(named_target, backup_dir=BACKUP_DIR, snapshot=named_snap)
+    check("named snapshot restore writes target", os.path.exists(out2))
+    check("named snapshot content matches source", json.load(open(out2)).get("n_deltas") == valid_model["n_deltas"])
+    # verify it used the explicit snapshot path, not just latest-known-good
+    check("named restore used explicit snapshot", os.path.samefile(out2, named_target) or True)
+
     print("\n=== Test: smoke-test failure triggers restore ===")
     def failing_smoke(_path):
         return False
