@@ -133,78 +133,123 @@ by this system (it is the deploy artifact, managed by the deploy step).
 
 ## 3. Exact wiring — daily refresh into validation → snapshot → publish → smoke → restore
 
-This replaces **only cron step 2** (the one-line `assert`) and **adds steps 6-8**.
-Steps 1, 3, 4, 5 remain as-is. The OPS-02 pipeline modules are vendored into the
+This replaces **only cron step 2** (the one-line `assert`), **adds a step 0 to
+preserve the prior**, and **adds a pre-production smoke before any prod deploy**.
+Steps 1, 4, 5 remain as-is. The OPS-02 pipeline modules are vendored into the
 cron workspace (or merged to master and present in `btc-wizard/ops/`).
 
+> `run_pipeline` is a **library function** (`ops.validation.run_pipeline.run(...)`),
+> not a CLI. The cron calls it via a small Python heredoc (shown below). A
+> `--candidate/--publish-target/...` CLI wrapper is an optional future GitHub
+> change for convenience only; it is not required to wire this.
+
 ```
+STEP 0 (NEW) — preserve the prior known-good BEFORE refresh:
+  mkdir -p ops/runtime
+  cp /home/user/workspace/btc-wizard/frontend/analysis.json ops/runtime/prior-known-good.json
+  # If the file is missing (first run), prior is None -> collapse check is skipped.
+
 STEP 1 (unchanged): refresh_analysis.py -> writes candidate
        /home/user/workspace/btc-wizard/frontend/analysis.json
 
-STEP 2 (REPLACED) — validate + snapshot + conditional publish:
-  prior_kg = /home/user/workspace/btc-wizard/frontend/analysis.json   # the current live model
-  candidate = same path (just written by step 1)                        # treated as the candidate
-  python3 ops/validation/run_pipeline.py \
-      --candidate <candidate> \
-      --prior-known-good <prior_kg> \
-      --publish-target <candidate>        # publish-in-place only on pass
-      --backup-dir <durable backups dir> \
-      --status-path <durable status path>
-  # Pipeline semantics (already implemented in OPS-02):
-  #   - validate candidate (9 rules) vs prior known-good
-  #   - if PASS: snapshot prior known-good -> analysis.<ts>.json + latest-known-good.json;
-  #              publish candidate to publish_target; publication_status=passed
-  #   - if FAIL: HOLD (do not overwrite prior); publication_status=held; if a publish
-  #              target was given, restore latest-known-good there -> restored
-  # If outcome != passed -> STOP, skip step 3, go to STEP 7 (alert).
+STEP 2 (REPLACED) — validate candidate vs the preserved prior; snapshot prior on pass:
+  python3 - <<'PY'
+  import sys
+  from ops.validation import run_pipeline
+  from ops.validation.restore import restore as restore_kg
+  CAND = "/home/user/workspace/btc-wizard/frontend/analysis.json"
+  PRIOR = "/home/user/workspace/btc-wizard/ops/runtime/prior-known-good.json"
+  r = run_pipeline.run(
+      candidate_path=CAND,
+      prior_known_good=PRIOR,
+      publish_target=None,          # do NOT publish in-place; candidate already on disk
+      backup_dir="<durable backups dir>",
+      status_path="<durable status path>",
+  )
+  if not r.ok:
+      # restore the preserved prior back onto the candidate path so disk holds known-good
+      restore_kg(CAND, backup_dir="<durable backups dir>", snapshot=PRIOR)
+      sys.exit(2)   # skip deploy/push; go to STEP 7 (alert)
+  # on pass: pipeline already snapshotted PRIOR -> analysis.<ts>.json + latest-known-good.json
+  PY
+  # Candidate stays at frontend/analysis.json for deploy.
 
-STEP 3 (unchanged): vercel deploy --yes --prod --token $VERCEL_TOKEN
+STEP 3 (NEW) — PRE-PRODUCTION smoke (no Vercel deploy yet):
+  Serve the candidate locally and smoke it read-only:
+    cd frontend && python3 -m http.server 8765 &
+    fetch http://localhost:8765/analysis.json
+  Run the OPS-02 validator on the served candidate + freshness (data_end newer than
+  prior) + integrity (served == candidate on disk) + page 200.
+  If smoke fails -> do NOT prod-deploy; prior model stays live (prod untouched);
+  go to STEP 7 (alert). No restore needed because prod was never touched.
+  If smoke passes -> proceed to STEP 4.
 
-STEP 4 (unchanged): git add analysis.json && commit && git push origin master
+STEP 4 (was 3, unchanged): vercel deploy --yes --prod --token $VERCEL_TOKEN
 
-STEP 5 (unchanged): curl live analysis.json, print data_end
+STEP 5 (was 4, unchanged): git add analysis.json && commit && git push origin master
 
-STEP 6 (NEW) — production smoke test (see §4). If smoke fails -> STEP 8.
+STEP 6 (was 5 + PRODUCTION smoke): curl live analysis.json; run the production
+  smoke (final verification: validator on the LIVE served file + freshness vs
+  prior + integrity vs candidate + page 200).
+  If production smoke fails -> the bad candidate IS live; trigger the
+  manual-approval restore gate (STEP 8) + alert. Do NOT claim "prior known-good
+  is live" until restore has actually completed.
 
-STEP 7 (NEW) — write machine-readable status report to backup repo + alert (§7).
+STEP 7 (NEW) — write machine-readable status report to backup repo + digest/alert (§7).
 
 STEP 8 (NEW, manual-approval gate) — restore: redeploy prior known-good.
-   git checkout latest-known-good.json -> analysis.json ; vercel deploy --prod ;
-   git push origin master. Restore is NOT automatic in OPS-03a; it requires
-   release-approval (§7) — a human (Andrew) or an approved auto-restore policy.
+   cp ops/runtime/prior-known-good.json frontend/analysis.json ; vercel deploy --prod ;
+   git push origin master. NOT automatic in OPS-03a; requires release-approval (§7).
 ```
 
+**Why this fixes the ordering problem:** a bad candidate can no longer reach
+production. It is blocked at validation (step 2) or at pre-production smoke
+(step 3) — both before any `vercel deploy --prod`. Production smoke (step 6) is
+only final verification; if it fails, restore is gated and explicitly flagged
+as not-yet-restored.
+
 **Non-invasive property:** `refresh_analysis.py` is untouched. The pipeline
-wraps its output file. If step 1 fails entirely, the pipeline never runs and the
-prior model stays live (the cron already retries step 1 once).
+wraps its output file and preserves a prior copy (step 0) before refresh runs.
 
-**One subtlety to confirm at implementation (Blocker A):** "publish-in-place"
-assumes step 1 wrote the candidate to `frontend/analysis.json` in-place. If step
-1 instead writes a temp file and renames, the pipeline should point at the temp
-candidate and publish to `frontend/analysis.json`. Confirm the exact write path
-before wiring.
+**One subtlety to confirm at implementation (Blocker A):** step 0 assumes the
+current live model lives at `frontend/analysis.json` before refresh. If
+`refresh_analysis.py` writes a temp file and renames, point step 0 at the live
+path and the candidate at the temp path. Confirm the exact write path before wiring.
 
-## 4. Production smoke-test design
+## 4. Smoke-test design (pre-production gate + production verification)
 
-Run **after** step 5 (live verify), read-only against the production URL:
+Smoke runs at **two** points, so a bad candidate never reaches production:
 
-1. **Fetch** `https://silverline.global/analysis.json` (no-cache).
-2. **Structural smoke**: run the OPS-02 validator against the **live served**
-   file (read-only; never writes). Must pass all 9 rules.
-3. **Freshness smoke**: `data_end` of the live model must be **newer than** the
-   prior known-good's `data_end` (the daily refresh advanced the data). Rejects
-   a stale redeploy or a failed refresh that silently served yesterday's model.
-4. **Integrity smoke**: the live served JSON must be byte-identical (after
-   normalization) to the candidate that was deployed — catches a deploy that
-   served a stale/cached file.
-5. **Page smoke**: `curl -I https://silverline.global/` returns 200 and
-   `Content-Type: text/html`.
-6. **Result**: `smoke_ok = pass` only if all 1-5 pass. On fail → STEP 8 (restore)
-   + alert. Smoke never mutates production; it only reads.
+### 4a. Pre-production smoke (gate, before `vercel deploy --prod`)
 
-The smoke test is a Python function `smoke_test(live_url, prior_known_good_path,
-candidate_path) -> (ok, details)` pluggable into `run_pipeline` via the existing
-`smoke_test_fn` hook (already implemented and preview-tested in OPS-02).
+Serve the candidate locally (no Vercel deploy) and verify read-only:
+1. `cd frontend && python3 -m http.server 8765` (or any static server).
+2. Fetch `http://localhost:8765/analysis.json`.
+3. Run the OPS-02 validator against the served candidate (9 rules).
+4. Freshness: candidate `data_end` newer than the preserved prior's `data_end`.
+5. Integrity: served JSON byte-identical (normalized) to the candidate on disk.
+6. Page: `http://localhost:8765/` returns 200.
+
+If 4a fails -> **do not prod-deploy**; production is untouched (no restore
+needed); alert. This is the primary bad-model gate.
+
+### 4b. Production smoke (final verification, after prod deploy + push)
+
+Read-only against the production URL:
+1. Fetch `https://silverline.global/analysis.json` (no-cache).
+2. Structural: run the OPS-02 validator on the live served file.
+3. Freshness: live `data_end` newer than the prior known-good.
+4. Integrity: live served JSON == candidate that was deployed.
+5. Page: `curl -I https://silverline.global/` -> 200, `text/html`.
+
+If 4b fails -> the bad candidate IS live; trigger the manual-approval restore
+(STEP 8) + alert. **Do not claim "prior known-good is live" until restore has
+actually completed.**
+
+The smoke function `smoke_test(url, prior_path, candidate_path) -> (ok, details)`
+plugs into `run_pipeline` via the existing `smoke_test_fn` hook (already
+implemented and preview-tested in OPS-02). Smoke never mutates production; it
+only reads.
 
 ## 5. Exact future GitHub / Vercel / cron / secret / permission changes
 
@@ -298,7 +343,12 @@ of outcome; delivered via Perplexity notification — see `custom-notifications`
 **Failure alert** (immediate, only on `outcome=fail` or smoke fail):
 - Channel: push + email (Perplexity notification).
 - Body: `SILVERLINE ALERT — <step> failed — publication_status=<held|restored>
-  — failures: <rule:detail> — prior known-good is live — status <link>`.
+  — failures: <rule:detail> — status <link>`.
+- If the failure is a pre-production smoke/validation failure: production is
+  untouched and the prior known-good remains live — state this.
+- If the failure is a **production** smoke failure: the bad candidate IS live;
+  state "production serving bad candidate — restore pending approval" — do NOT
+  claim prior known-good is live until restore (STEP 8) has completed.
 - Never auto-resolves a real-money ledger bet; never publishes raw Kalshi data.
 
 **Release-approval notification** (only when `publication_status=held` or
@@ -352,16 +402,3 @@ of outcome; delivered via Perplexity notification — see `custom-notifications`
    verified before wiring.
 6. **Approve the SYSTEST-02 drill** plan and a preview (non-prod) Vercel deploy
    for the rehearsal.
-
-## 10. Report
-
-```
-OPS-03a complete
-Branch: ops/validation-backups
-Commit: (set at commit time)
-Files added/modified: ops/OPS-03A_PROPOSAL.md (added)
-Production touched: no
-Vercel touched: no
-Decisions required from Founder: see §9 (6 items)
-Blocker: refresh_analysis.py not in repo/sandbox (Blocker A); Vercel env names not enumerable unlinked (Blocker B). Least-invasive next action: read refresh_analysis.py + analysis.py in cron session 471139aa or have Founder paste them; do not guess internals.
-```
