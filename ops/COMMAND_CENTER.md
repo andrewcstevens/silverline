@@ -34,7 +34,7 @@
 | OPS-03a Durable Backup Proposal | CTO | `ops/validation-backups` (`c201b85`) | Complete (proposal, read-only) | No | Awaiting Founder decisions (§below) |
 | CTO-02 Kalshi Proxy | CTO | `feature/kalshi-proxy` (`b6ab287`) | Preview deployed — function built Ready (`λ api/kalshi`); runtime smoke blocked by team SSO | No | Founder decision #3 (open preview in browser, or disable protection, or defer) |
 | REEDING-01 Motion Study 01 | CTO | `feature/reeding-01-motion` (`5788e6c`) | Complete — prototype + technical discovery + file-level plan | No | Founder decisions #7–#10 (aesthetic confirm, replace vs parallel, intensity, reference) |
-| PRE-0 Price-Aware Signal Guardrails | CTO | `feature/pre-0-guardrails` (`6a9ab89`) | Complete — reference impl + 12/12 tests + discovery | No | Founder decisions #11–#14 (live price source, min-edge floor, speculative label, server vs client) |
+| PRE-0 Price-Aware Signal Guardrails | CTO | `feature/pre-0-guardrails` (`39f3296`) | Complete — reference impl + 13/13 tests + discovery | No | Founder decisions #11–#14 (live price source, min-edge floor, speculative label, server vs client) |
 | OPS-04 Safe-Mode Runbook + Task Router | CTO | `ops/safe-mode-runbook` (`b4585b0`) | Complete — runbook + deterministic autonomous task router | No | None |
 | OPS-03b Command Center | CTO | `ops/command-center` | Complete | No | Live; updated per task |
 
@@ -69,7 +69,7 @@ Stopping and waiting for Andrew. Open Founder decisions: #1 merge approval, #2 b
 
 ## Next Task Allowed
 
-After COO review of OPS-03b and Founder approval of a specific workstream: the highest-leverage autonomous-safe next task would be **PRE-0 Price-Aware Signal Guardrails** (non-production logic hardening on a feature branch) — but only if the Founder/COO queue it. No task is to begin without an explicit go.
+**None autonomous-safe.** The Task Router (see `ops/SAFE_MODE_RUNBOOK.md` on `ops/safe-mode-runbook`) walked `ops/WORK_QUEUE.md`: the only remaining task is SYSTEST-02, which is Founder-gated (requires a preview deploy + the CTO-02 access-model decision). No task begins without Andrew's explicit go. The next action is Andrew's: pick any open Founder Inbox decision, or authorize a new autonomous-safe task.
 
 ---
 
