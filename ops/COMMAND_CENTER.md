@@ -1,7 +1,7 @@
 # Silverline Command Center
 
-**Last Updated:** 2026-08-30 13:45 PT
-**Source:** GitHub repo `andrewcstevens/silverline`, branch inspection + verified workstream state.
+**Last Updated:** 2026-08-30 13:58 PT
+**Source:** GitHub repo `andrewcstevens/silverline`, branch inspection + verified workstream state + Vercel preview inspection.
 **Maintained by:** CTO agent. Read-only reference for all sessions — Andrew should never have to relay a handoff between AI sessions.
 
 > This is a living index. Every status here is backed by a branch tip, a commit, or a documented inspection. If a status is not independently verified, it says so.
@@ -32,8 +32,8 @@
 | OPS-02 Validation + Backup + LKG | CTO | `ops/validation-backups` (`c201b85`) | Complete | No | Awaiting merge decision |
 | SYSTEST-01 Preview stress test | CTO | `ops/validation-backups` (`49d3202`) | Complete — 15/15 scenarios, 35/35 sub-assertions | No | None (gate passed) |
 | OPS-03a Durable Backup Proposal | CTO | `ops/validation-backups` (`c201b85`) | Complete (proposal, read-only) | No | Awaiting Founder decisions (§below) |
-| CTO-02 Kalshi Proxy | CTO | `feature/kalshi-proxy` (`ddcc3ac`) | Complete (safe-mode build) | No | Needs preview deploy + access-model refinement before any prod decision |
-| OPS-03b Command Center | CTO | `ops/command-center` | Complete (this file set) | No | Stop, await COO review |
+| CTO-02 Kalshi Proxy | CTO | `feature/kalshi-proxy` (`b6ab287`) | Preview deployed — function built Ready (`λ api/kalshi`); runtime smoke blocked by team SSO | No | Founder decision #3 (open preview in browser, or disable protection, or defer) |
+| OPS-03b Command Center | CTO | `ops/command-center` | Complete | No | Live; updated per task |
 
 ---
 
@@ -43,7 +43,7 @@ Only decisions Andrew actually needs to make. Nothing here is auto-actionable un
 
 1. **Merge approval** — approve merging `ops/validation-backups` (OPS-02 + SYSTEST-01 + OPS-03a proposal) and `feature/kalshi-proxy` (CTO-02) into `master`. Neither touches production until deployed.
 2. **Private backup repo** — approve creating private repo `andrewcstevens/silverline-backups` for durable model snapshots / known-good / status (reuses existing GitHub cred; zero new infra). Detailed in OPS-03A_PROPOSAL.md §1.
-3. **CTO-02 preview deploy + access model** — the bearer token is anti-abuse, not a real secret (visible in frontend source). Decide whether that visibility is acceptable or whether to add a build step / different access model before any production deploy.
+3. **CTO-02 preview smoke + access model** — the preview deploy succeeded (function built Ready), but the `etherescape` team's Deployment Protection (SSO) blocks automated runtime smoke (every preview URL 302→vercel.com/login). To verify the Vercel Python runtime invocation: (a) Andrew opens the preview URL `https://silverline-global-gnamw5bla-etherescape.vercel.app` in a browser logged into the team (function returns 401 fail-closed, proving routing), or (b) temporarily disable Deployment Protection (production-setting change, needs approval), or (c) defer to the go-live gate. Separately, the bearer token is anti-abuse, not a real secret (visible in frontend source); full happy-path smoke (200+data) needs `SILVERLINE_PROXY_TOKEN` as a preview env var — also a Founder decision. Details: `api/PREVIEW_DEPLOY.md` on `feature/kalshi-proxy`.
 4. **Blocker A (refresh internals)** — `refresh_analysis.py` / `analysis.py` / `candles.parquet` live in the cron session's workspace, not in the GitHub repo or the CTO sandbox. Read them in cron session `471139aa` or paste them so the OPS-03a wiring can confirm the exact candidate write path.
 5. **Ledger opt-in** — decide whether the durable backup includes the browser ledger (`localStorage` export) or stays model-only.
 6. **Restore policy** — confirm restore stays manual-approval (no auto-rollback of a live model) under OPS-03a.
@@ -52,7 +52,7 @@ Only decisions Andrew actually needs to make. Nothing here is auto-actionable un
 
 ## Next Automatic Action
 
-**None.** Safe mode is exhausted. Every remaining step (merge to master, Vercel preview/prod deploy, set env vars/secrets, SYSTEST-02 release drill) requires explicit Founder approval. The CTO agent stops here and waits for COO review.
+**Continue safe-mode task list.** CTO-02 preview prep is done (function built Ready; runtime smoke blocked by team SSO — a Founder decision). Proceeding to REEDING-01 (Motion Study 01 technical discovery + file-level plan), then PRE-0, then OPS-04 — all autonomous-safe on feature branches, none touching production.
 
 ## Next Task Allowed
 

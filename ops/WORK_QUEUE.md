@@ -1,6 +1,6 @@
 # Silverline Work Queue
 
-**Last Updated:** 2026-08-30 13:45 PT
+**Last Updated:** 2026-08-30 13:58 PT
 Statuses: `Complete` · `In Progress` · `Blocked` · `Ready for Review` · `Waiting for Founder` · `Not Started`.
 Ordered by dependency, not by priority. Dependency column says what must be true before a task can start.
 
@@ -8,10 +8,11 @@ Ordered by dependency, not by priority. Dependency column says what must be true
 |---|---|---|---|---|---|---|
 | 1 | OPS-03b Unified Workspace Inbox | Complete | `ops/command-center` | — | Stop; await COO review | Autonomous (done) |
 | 2 | OPS-03a Durable Backup Storage & Production-Readiness Proposal | Complete | `ops/validation-backups` (`c201b85`) | — | Founder decisions (Founder Inbox #2, #4, #5, #6) | Waiting for Founder |
-| 3 | CTO-02 Kalshi Proxy Preview Deployment & Access-Model Refinement | Not Started | `feature/kalshi-proxy` (`ddcc3ac`) | Founder merge approval + access-model decision (#3) + Blocker A | Preview-deploy to Vercel (non-prod), verify Python function routing, refine token model | Requires Founder |
-| 4 | PRE-0 Price-Aware Signal Guardrails | Not Started | TBD feature branch | — (independent of deploy work) | Design signal guardrails that account for contract price / payout, not just win-rate | Autonomous-safe (feature branch, no prod) if queued |
-| 5 | REEDING-01 Motion Study 01 | Not Started | TBD | — (v3 aesthetic direction not yet confirmed by Founder) | Produce a motion/parallax study for the v3 mobile redesign per the AlphaLedger reference lane | Autonomous-safe once Founder confirms aesthetic direction |
-| 6 | SYSTEST-02 Full Release Drill | Not Started | preview deploy (non-prod) | OPS-02 merged to master + CTO-02 preview-deployed + access model refined | Rehearse the full validate→snapshot→publish→smoke→restore path against a preview deploy, all failure paths | Requires Founder (needs preview deploy) |
+| 3 | CTO-02 Kalshi Proxy Preview Deployment & Access-Model Refinement | Ready for Review (blocked on runtime smoke) | `feature/kalshi-proxy` (`b6ab287`) | Founder decisions: merge approval + token/access model (#3) + Blocker A | Preview deployed (function built Ready); runtime smoke blocked by team SSO. Andrew opens preview in browser, or Founder disables protection, or defer to go-live gate | Requires Founder |
+| 4 | REEDING-01 Motion Study 01 — Technical Discovery & File-Level Implementation Plan | In Progress | TBD feature branch | — (v3 aesthetic direction: dark/card-based proposed, Founder to confirm) | Read live site structure, produce motion/parallax technical discovery + file-level plan + static prototype assets | Autonomous-safe |
+| 5 | PRE-0 Price-Aware Signal Guardrails — Technical Discovery & Test Plan | Not Started | TBD feature branch | — (independent of deploy chain) | Design signal guardrails accounting for contract price/payout, not just win-rate | Autonomous-safe if queued |
+| 6 | SYSTEST-02 Full Release Drill | Not Started | preview deploy (non-prod) | OPS-02 merged to master + CTO-02 preview-deployed + access model refined | Rehearse full validate→snapshot→publish→smoke→restore against a preview deploy, all failure paths | Requires Founder (needs preview deploy) |
+| 7 | OPS-04 Autonomous Task Router + Safe-Mode Runbook | Not Started | TBD ops branch | — | Build a task-router + safe-mode runbook doc so the agent self-selects the next safe task from this queue | Autonomous-safe |
 
 ### Dependency notes
 
