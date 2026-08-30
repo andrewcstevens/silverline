@@ -7,3 +7,7 @@ _preview/
 ops/backups/
 ops/runs/
 ops/candidates/
+
+# Python bytecode
+__pycache__/
+*.pyc
