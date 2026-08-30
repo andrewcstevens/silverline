@@ -1,7 +1,7 @@
 # Silverline Command Center
 
-**Last Updated:** 2026-08-30 14:10 PT
-**Source:** GitHub repo `andrewcstevens/silverline`, branch inspection + verified workstream state + Vercel preview inspection + motion-study prototype deploy.
+**Last Updated:** 2026-08-30 14:22 PT
+**Source:** GitHub repo `andrewcstevens/silverline`, branch inspection + verified workstream state + Vercel preview inspection + motion-study prototype deploy + PRE-0 reference impl + tests.
 **Maintained by:** CTO agent. Read-only reference for all sessions — Andrew should never have to relay a handoff between AI sessions.
 
 > This is a living index. Every status here is backed by a branch tip, a commit, or a documented inspection. If a status is not independently verified, it says so.
@@ -34,6 +34,7 @@
 | OPS-03a Durable Backup Proposal | CTO | `ops/validation-backups` (`c201b85`) | Complete (proposal, read-only) | No | Awaiting Founder decisions (§below) |
 | CTO-02 Kalshi Proxy | CTO | `feature/kalshi-proxy` (`b6ab287`) | Preview deployed — function built Ready (`λ api/kalshi`); runtime smoke blocked by team SSO | No | Founder decision #3 (open preview in browser, or disable protection, or defer) |
 | REEDING-01 Motion Study 01 | CTO | `feature/reeding-01-motion` (`5788e6c`) | Complete — prototype + technical discovery + file-level plan | No | Founder decisions #7–#10 (aesthetic confirm, replace vs parallel, intensity, reference) |
+| PRE-0 Price-Aware Signal Guardrails | CTO | `feature/pre-0-guardrails` (`6a9ab89`) | Complete — reference impl + 12/12 tests + discovery | No | Founder decisions #11–#14 (live price source, min-edge floor, speculative label, server vs client) |
 | OPS-03b Command Center | CTO | `ops/command-center` | Complete | No | Live; updated per task |
 
 ---
@@ -52,12 +53,16 @@ Only decisions Andrew actually needs to make. Nothing here is auto-actionable un
 8. **v3 replace vs parallel** — does the v3 motion redesign replace the live v2.0 deploy outright, or ship as a parallel comparison build?
 9. **Motion intensity** — the REEDING-01 prototype is deliberately subtle. More or less pronounced?
 10. **Motion reference feel** — AlphaLedger (Behance) was the earlier UX reference. Same lane for the motion layer, or a different one?
+11. **PRE-0 live price source** — wire the CTO-02 Kalshi proxy orderbook price into the Golden Window (needs proxy merged + token/access decided, #3), or use a manual/configurable price assumption first?
+12. **PRE-0 min-edge floor** — gate BUY on a minimum edge (e.g. +1pp / +2pp), or keep 0 and let significance do the work?
+13. **PRE-0 SPECULATIVE labeling** — surface a third SPECULATIVE verdict state in the UI, or keep it binary (BUY/WAIT) and suppress speculative slots?
+14. **PRE-0 server vs client** — port the guardrail into the analysis pipeline (needs Blocker A: read refresh_analysis.py/analysis.py) so analysis.json ships price-aware verdicts, or keep it client-side only?
 
 ---
 
 ## Next Automatic Action
 
-**Continue safe-mode task list.** REEDING-01 done (prototype + plan). Proceeding to PRE-0 (Price-Aware Signal Guardrails technical discovery + test plan) on a feature branch — non-production logic hardening, no deploy/merge/prod change.
+**Continue safe-mode task list.** PRE-0 done (reference impl + 12/12 tests + discovery). Proceeding to OPS-04 (Autonomous Task Router + Safe-Mode Runbook) on an ops branch — documentation + a self-selection mechanism, no deploy/merge/prod change.
 
 ## Next Task Allowed
 
