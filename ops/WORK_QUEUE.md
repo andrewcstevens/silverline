@@ -1,6 +1,6 @@
 # Silverline Work Queue
 
-**Last Updated:** 2026-08-30 14:22 PT
+**Last Updated:** 2026-08-30 14:30 PT
 Statuses: `Complete` · `In Progress` · `Blocked` · `Ready for Review` · `Waiting for Founder` · `Not Started`.
 Ordered by dependency, not by priority. Dependency column says what must be true before a task can start.
 
@@ -12,7 +12,7 @@ Ordered by dependency, not by priority. Dependency column says what must be true
 | 4 | REEDING-01 Motion Study 01 — Technical Discovery & File-Level Implementation Plan | Complete | `feature/reeding-01-motion` (`5788e6c`) | — | Prototype + plan done; awaiting Founder aesthetic decisions #7–#10 | Autonomous-safe (done) |
 | 5 | PRE-0 Price-Aware Signal Guardrails — Technical Discovery & Test Plan | Complete | `feature/pre-0-guardrails` (`6a9ab89`) | — | Reference impl + 12/12 tests + discovery; Founder decisions #11–#14 | Autonomous-safe (done) |
 | 6 | SYSTEST-02 Full Release Drill | Not Started | preview deploy (non-prod) | OPS-02 merged to master + CTO-02 preview-deployed + access model refined | Rehearse full validate→snapshot→publish→smoke→restore against a preview deploy, all failure paths | Requires Founder (needs preview deploy) |
-| 7 | OPS-04 Autonomous Task Router + Safe-Mode Runbook | In Progress | TBD ops branch | — | Build a task-router + safe-mode runbook so the agent self-selects the next safe task from this queue | Autonomous-safe |
+| 7 | OPS-04 Autonomous Task Router + Safe-Mode Runbook | Complete | `ops/safe-mode-runbook` (`b4585b0`) | — | Runbook + deterministic task router; codifies the pre-task ritual + self-selection + stop conditions | Autonomous-safe (done) |
 
 ### Dependency notes
 

@@ -1,7 +1,7 @@
 # Silverline Command Center
 
-**Last Updated:** 2026-08-30 14:22 PT
-**Source:** GitHub repo `andrewcstevens/silverline`, branch inspection + verified workstream state + Vercel preview inspection + motion-study prototype deploy + PRE-0 reference impl + tests.
+**Last Updated:** 2026-08-30 14:30 PT
+**Source:** GitHub repo `andrewcstevens/silverline`, branch inspection + verified workstream state + Vercel preview inspection + motion-study prototype deploy + PRE-0 reference impl + tests + safe-mode runbook.
 **Maintained by:** CTO agent. Read-only reference for all sessions — Andrew should never have to relay a handoff between AI sessions.
 
 > This is a living index. Every status here is backed by a branch tip, a commit, or a documented inspection. If a status is not independently verified, it says so.
@@ -35,6 +35,7 @@
 | CTO-02 Kalshi Proxy | CTO | `feature/kalshi-proxy` (`b6ab287`) | Preview deployed — function built Ready (`λ api/kalshi`); runtime smoke blocked by team SSO | No | Founder decision #3 (open preview in browser, or disable protection, or defer) |
 | REEDING-01 Motion Study 01 | CTO | `feature/reeding-01-motion` (`5788e6c`) | Complete — prototype + technical discovery + file-level plan | No | Founder decisions #7–#10 (aesthetic confirm, replace vs parallel, intensity, reference) |
 | PRE-0 Price-Aware Signal Guardrails | CTO | `feature/pre-0-guardrails` (`6a9ab89`) | Complete — reference impl + 12/12 tests + discovery | No | Founder decisions #11–#14 (live price source, min-edge floor, speculative label, server vs client) |
+| OPS-04 Safe-Mode Runbook + Task Router | CTO | `ops/safe-mode-runbook` (`b4585b0`) | Complete — runbook + deterministic autonomous task router | No | None |
 | OPS-03b Command Center | CTO | `ops/command-center` | Complete | No | Live; updated per task |
 
 ---
@@ -62,7 +63,9 @@ Only decisions Andrew actually needs to make. Nothing here is auto-actionable un
 
 ## Next Automatic Action
 
-**Continue safe-mode task list.** PRE-0 done (reference impl + 12/12 tests + discovery). Proceeding to OPS-04 (Autonomous Task Router + Safe-Mode Runbook) on an ops branch — documentation + a self-selection mechanism, no deploy/merge/prod change.
+**Safe Mode has reached a Founder-only decision boundary.** OPS-04 (the final autonomous-safe task in the queue) is complete. The Task Router walks `ops/WORK_QUEUE.md`: the only remaining task (SYSTEST-02) is Founder-gated (requires a preview deploy + the CTO-02 access-model decision). No autonomous-safe task remains.
+
+Stopping and waiting for Andrew. Open Founder decisions: #1 merge approval, #2 backup repo, #3 CTO-02 preview smoke + access model, #4 Blocker A (read refresh internals), #5 ledger opt-in, #6 restore policy, #7–#10 v3 motion, #11–#14 PRE-0 wiring.
 
 ## Next Task Allowed
 
