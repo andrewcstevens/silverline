@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Silverline · Motion Study 01 (REEDING-01)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&display=swap" rel="stylesheet" />
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@300,400,500,600,700&display=swap" rel="stylesheet" />
+<style>
+  /* ===== Silverline design tokens (mirrored from production index.html) ===== */
+  :root{
+    --bg:#0b0e11; --panel:#14181d; --panel2:#1b2128; --line:#262d36;
+    --txt:#e6e8eb; --mut:#8b94a0; --mut2:#5f6873;
+    --teal:#2dd4bf; --up:#34d399; --down:#f87171; --amber:#fbbf24; --blue:#60a5fa;
+    --mono:"General Sans","Inter",sans-serif;
+    --sans:"General Sans","Inter",sans-serif;
+    --display:"Fraunces","Georgia",serif;
+    --ease-out:cubic-bezier(0.16,1,0.3,1);
+    --ease-in-out:cubic-bezier(0.4,0,0.2,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;overflow-x:hidden}
+
+  /* ===== AMBIENT REEDING BACKGROUND =====
+     The coin-edge "reeding" metaphor: vertical milled grooves drifting slowly.
+     Two fixed layers, out of flow (position:fixed) so they never cause CLS and
+     never compete with the live ticker's main-thread work. Background-position
+     animation runs on the compositor — no JS scroll listeners, no jank. */
+  .ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .reed{position:absolute;inset:-10% -10%;width:120%;height:120%;
+    background:repeating-linear-gradient(90deg,
+      transparent 0,transparent 38px,
+      rgba(45,212,191,0.018) 38px,rgba(45,212,191,0.018) 39px,
+      transparent 39px,transparent 78px);
+    animation:reed-drift 46s linear infinite;
+    will-change:background-position}
+  @keyframes reed-drift{from{background-position:0 0}to{background-position:780px 0}}
+  .glow{position:absolute;inset:0;
+    background:radial-gradient(120% 80% at 78% -10%,rgba(45,212,191,0.06),transparent 60%),
+               radial-gradient(90% 70% at 8% 110%,rgba(96,165,250,0.04),transparent 60%);
+    animation:glow-breathe 14s ease-in-out infinite}
+  @keyframes glow-breathe{0%,100%{opacity:0.7}50%{opacity:1}}
+
+  /* Scroll-linked parallax on the reed layer — drifts slower than the page for
+     depth. Only safe on a fixed, out-of-flow layer (never on in-flow content). */
+  @supports (animation-timeline: scroll()){
+    .reed{animation:reed-drift 46s linear infinite;animation-timeline:scroll()}
+  }
+
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+
+  /* ===== STICKY TOPBAR ===== */
+  .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:22px;
+    background:linear-gradient(180deg,rgba(11,14,17,0.92),rgba(11,14,17,0.72));
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .logo{display:flex;align-items:center;gap:11px}
+  .mark{height:26px;width:26px;border-radius:6px;
+    background:conic-gradient(from 220deg,var(--teal),var(--blue),var(--teal));
+    box-shadow:0 0 0 1px rgba(45,212,191,0.25),0 0 18px rgba(45,212,191,0.18)}
+  .wordmark{font-family:var(--display);font-size:19px;font-weight:600;letter-spacing:.3px}
+  .sub{font-size:11px;color:var(--mut2);font-family:var(--mono);letter-spacing:.5px;text-transform:uppercase}
+  .price-pill{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end}
+  .price{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:.3px}
+  .price .cur{color:var(--mut2);font-size:14px;margin-right:3px}
+  .price .tick{display:inline-block;transition:transform .25s var(--ease-out)}
+  .clock{font-family:var(--mono);font-size:12px;color:var(--mut)}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);padding:4px 9px;border-radius:6px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--up);box-shadow:0 0 8px var(--up);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+  /* ===== LAYOUT ===== */
+  .grid{display:grid;gap:14px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:860px){.g3,.g2{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 17px;position:relative;overflow:hidden}
+  .card::after{content:"";position:absolute;inset:0;border-radius:12px;pointer-events:none;
+    background:radial-gradient(120% 60% at 50% -20%,rgba(255,255,255,0.025),transparent 70%)}
+  .card h2{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut2);margin:0 0 12px;font-weight:600;position:relative}
+  .kpi{font-family:var(--display);font-size:28px;font-weight:600;letter-spacing:.3px;position:relative}
+  .cap{font-size:11.5px;color:var(--mut);margin-top:6px;font-family:var(--mono);position:relative}
+  .dir{font-size:13px;font-weight:650;padding:3px 9px;border-radius:6px;display:inline-block}
+  .dir.over{background:rgba(52,211,153,.12);color:var(--up);border:1px solid rgba(52,211,153,.3)}
+  .dir.under{background:rgba(248,113,113,.12);color:var(--down);border:1px solid rgba(248,113,113,.3)}
+  .sig{font-size:10.5px;font-family:var(--mono);padding:2px 7px;border-radius:5px;margin-left:8px;vertical-align:middle}
+  .sig.yes{background:rgba(45,212,191,.14);color:var(--teal);border:1px solid rgba(45,212,191,.3)}
+  .now{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .now .slot{font-family:var(--display);font-size:24px;font-weight:600}
+  .now .pct{font-family:var(--display);font-size:20px;color:var(--teal)}
+  .verdict{margin-top:10px;font-size:12.5px;color:var(--mut);border-top:1px dashed var(--line);padding-top:10px}
+  .wpct{font-family:var(--display);font-size:22px;font-weight:600;margin-left:8px}
+  table{width:100%;border-collapse:collapse;font-size:13px;position:relative}
+  th{text-align:left;color:var(--mut2);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;padding:7px 8px;border-bottom:1px solid var(--line)}
+  td{padding:8px;border-bottom:1px solid var(--line);font-family:var(--mono)}
+  td:last-child,th:last-child{text-align:right}
+  .heat{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-top:6px}
+  .cell{aspect-ratio:1;border-radius:3px;background:var(--panel2)}
+  .evout{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-family:var(--mono);font-size:13px}
+  .evout .big{font-size:20px;font-weight:600;color:var(--teal)}
+  .foot{margin-top:30px;font-size:11.5px;color:var(--mut2);line-height:1.6;border-top:1px solid var(--line);padding-top:16px}
+
+  /* ===== SECTION REVEALS (scroll-driven, opacity/clip-path only — no CLS) =====
+     Elements occupy final space immediately; only visual mask animates. */
+  .reveal{opacity:1}
+  @supports (animation-timeline: view()){
+    .reveal{clip-path:inset(0 0 100% 0);animation:reveal-clip linear both;animation-timeline:view();animation-range:entry 0% cover 22%}
+  }
+  @keyframes reveal-clip{to{clip-path:inset(0 0 0 0)}}
+  .fade{opacity:1}
+  @supports (animation-timeline: view()){
+    .fade{opacity:0;animation:reveal-fade linear both;animation-timeline:view();animation-range:entry 0% entry 80%}
+  }
+  @keyframes reveal-fade{to{opacity:1}}
+
+  /* staggered card entrances within a grid */
+  .g3>.card:nth-child(2),.g2>.card:nth-child(2){animation-delay:60ms}
+  .g3>.card:nth-child(3){animation-delay:120ms}
+
+  /* ===== REDUCED MOTION — degrade gracefully ===== */
+  @media (prefers-reduced-motion: reduce){
+    .reed,.glow,.dot{animation:none!important}
+    .reed{background-position:0 0}
+    .reveal,.fade{clip-path:none!important;opacity:1!important;animation:none!important}
+    .price .tick{transition:none}
+    *{scroll-behavior:auto!important}
+  }
+</style>
+</head>
+<body>
+<!-- ambient layers (fixed, out of flow) -->
+<div class="ambient" aria-hidden="true">
+  <div class="reed"></div>
+  <div class="glow"></div>
+</div>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="logo">
+      <div class="mark"></div>
+      <span class="wordmark">Silverline</span>
+      <span class="sub">BTC 15-Min Edge Finder</span>
+    </div>
+    <span class="badge"><span class="dot"></span>Live</span>
+    <div class="price-pill">
+      <div class="price"><span class="cur">$</span><span class="tick" id="price">64,182.40</span></div>
+      <div class="clock" id="clock">—</div>
+    </div>
+  </div>
+
+  <!-- Buy Signal -->
+  <section class="card fade" style="margin-bottom:14px">
+    <h2>Buy Signal <span class="sig yes">PRE</span></h2>
+    <div class="grid g3">
+      <div class="card reveal"><h2>Upcoming Window</h2>
+        <div class="dir over">Over</div><span class="wpct">53.1%</span>
+        <div class="cap">Next: 13:45 ET · n=1,204</div></div>
+      <div class="card reveal"><h2>Golden Window</h2>
+        <div class="dir under">Under</div><span class="wpct">56.4%</span>
+        <div class="cap">14:00 ET · n=872 · edge +6.4pp</div></div>
+      <div class="card reveal"><h2>My Bet → You'd Win</h2>
+        <div class="kpi" style="color:var(--up)">$48.05</div>
+        <div class="cap">$24.99 stake · even odds</div></div>
+    </div>
+  </section>
+
+  <!-- KPI row -->
+  <section class="grid g3 fade" style="margin-bottom:14px">
+    <div class="card reveal"><h2>Live BTC / USD</h2><div class="kpi" id="kPrice">$64,182</div><div class="cap">Coinbase spot</div></div>
+    <div class="card reveal"><h2>Right-Now Slot</h2><div class="now"><span class="slot" id="kSlot">13:30</span><span class="pct">52.0%</span></div><div class="verdict">Base-rate slot — no material edge</div></div>
+    <div class="card reveal"><h2>Best Historical Edge</h2><div class="kpi" style="color:var(--amber)">14:00 ET</div><div class="cap">Under · 56.4% · +6.4pp</div></div>
+  </section>
+
+  <!-- Top Edge Slots -->
+  <section class="card fade" style="margin-bottom:14px">
+    <h2>Top Edge Slots — Ranked (24h)</h2>
+    <table class="compact">
+      <thead><tr><th>Slot</th><th>Side</th><th>Win%</th><th>95% CI</th><th>n</th><th>Edge</th></tr></thead>
+      <tbody>
+        <tr><td>14:00</td><td><span class="dir under">Under</span></td><td>56.4</td><td>53.1–59.6</td><td>872</td><td style="color:var(--amber)">+6.4</td></tr>
+        <tr><td>04:30</td><td><span class="dir over">Over</span></td><td>54.8</td><td>51.2–58.3</td><td>610</td><td style="color:var(--teal)">+4.8</td></tr>
+        <tr><td>05:45</td><td><span class="dir over">Over</span></td><td>54.1</td><td>50.4–57.7</td><td>588</td><td>+4.1</td></tr>
+        <tr><td>10:30</td><td><span class="dir under">Under</span></td><td>53.7</td><td>50.0–57.2</td><td>555</td><td>+3.7</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Heatmaps -->
+  <section class="grid g2 fade" style="margin-bottom:14px">
+    <div class="card reveal"><h2>Day Session — 8a–8p ET</h2>
+      <div class="heat" id="dayHeat"></div></div>
+    <div class="card reveal"><h2>Night Session — 8p–8a ET</h2>
+      <div class="heat" id="nightHeat"></div></div>
+  </section>
+
+  <!-- EV calculator -->
+  <section class="card ev fade" style="margin-bottom:14px">
+    <h2>Expected-Value Calculator</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span class="dir over">Over</span>
+      <span style="font-family:var(--mono);color:var(--mut2)">Win 53.0% · Price 50¢ · Stake $10</span>
+    </div>
+    <div class="evout">EV per $1 staked: <span class="big">+$0.60</span><br>Break-even: 47.0¢ · Edge vs price: +6.0pp</div>
+  </section>
+
+  <div class="foot">
+    <strong>Silverline · Motion Study 01 (REEDING-01).</strong> Static prototype — ambient reeding background + scroll-driven section reveals + parallax depth, mobile-first, with <code>prefers-reduced-motion</code> fallback. Legibility of numbers wins over spectacle; motion runs on the compositor and does not touch the main thread that drives the live ticker. No production files were modified.
+  </div>
+</div>
+
+<script>
+  // Mock live ticker — updates on its own rAF-free interval. In production this
+  // is the Coinbase spot fetch; here it just demonstrates that motion does NOT
+  // interfere with the ticker cadence.
+  (function(){
+    var p = document.getElementById('price');
+    var k = document.getElementById('clock');
+    var base = 64182.40;
+    function tick(){
+      var v = base + (Math.random()-0.5)*18;
+      p.textContent = v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+      var t = new Date();
+      k.textContent = t.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    }
+    tick();
+    // honor reduced-motion: still update the value, but skip the transform flourish
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(!reduce){
+      var old = p.textContent;
+      var iv = setInterval(function(){
+        tick();
+        var el = p.querySelector ? p : p; // price span itself
+        p.style.transform = 'translateY(-1px)';
+        setTimeout(function(){ p.style.transform='translateY(0)'; }, 120);
+      }, 1500);
+    } else {
+      setInterval(tick, 1500);
+    }
+  })();
+
+  // Heatmap cells (mock)
+  (function(){
+    function fill(id, n){
+      var el = document.getElementById(id); if(!el) return;
+      var html='';
+      for(var i=0;i<n;i++){
+        var s = Math.random();
+        var col = s>0.58 ? 'rgba(52,211,153,'+(0.15+0.5*s)+')'
+                : s<0.42 ? 'rgba(248,113,113,'+(0.15+0.5*(1-s))+')'
+                : 'var(--panel2)';
+        html += '<div class="cell" style="background:'+col+'"></div>';
+      }
+      el.innerHTML = html;
+    }
+    fill('dayHeat', 48);
+    fill('nightHeat', 48);
+  })();
+</script>
+</body>
+</html>
