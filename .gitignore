@@ -1,1 +1,9 @@
 .vercel
+
+# Kalshi backfill — raw market archive must never be committed
+backend/kalshi_settlement_raw.json
+backend/kalshi_settlement_raw*.json
+
+# Secrets / env — never commit
+*.env
+.env*
