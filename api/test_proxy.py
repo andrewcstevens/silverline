@@ -106,9 +106,39 @@ class PathAllowlist(unittest.TestCase):
             self.assertEqual(s, 200, f"{p} should be allowed")
 
     def test_allowed_market_subpaths(self):
-        for p in ["markets/KXBTC15M-20260830T1600/orderbook", "markets/KXBTC15M-20260830T1600/candlesticks"]:
+        for p in ["markets/KXBTC15M-26AUG292315-15/orderbook"]:
             s, _, _ = self._get(p)
             self.assertEqual(s, 200, f"{p} should be allowed")
+
+    def test_candlesticks_removed(self):
+        # candlesticks 404 on real Kalshi for this series -> not in allowlist
+        s, _, _ = self._get("markets/KXBTC15M-26AUG292315-15/candlesticks")
+        self.assertEqual(s, 403)
+
+    def test_path_injection_question_mark_blocked(self):
+        # '?' in a segment must not leak into the upstream URL as a query separator
+        captured = []
+        s, _, _ = handle("GET", _hdr(origin="https://silverline.global", auth=f"Bearer {TOKEN}"),
+                         {"path": "series/KXBTC15M?evil=1"}, token=TOKEN,
+                         fetch=_fake_fetch_factory(captured=captured))
+        self.assertEqual(s, 403)  # regex rejects '?' -> forbidden_path
+
+    def test_path_injection_ampersand_blocked(self):
+        captured = []
+        s, _, _ = handle("GET", _hdr(origin="https://silverline.global", auth=f"Bearer {TOKEN}"),
+                         {"path": "series/KXBTC15M&evil=1"}, token=TOKEN,
+                         fetch=_fake_fetch_factory(captured=captured))
+        self.assertEqual(s, 403)
+
+    def test_path_segments_are_url_quoted(self):
+        # a benign ticker with a '.' passes the regex and is quoted verbatim
+        captured = []
+        s, _, _ = handle("GET", _hdr(origin="https://silverline.global", auth=f"Bearer {TOKEN}"),
+                         {"path": "markets/KXBTC.1-2/orderbook"}, token=TOKEN,
+                         fetch=_fake_fetch_factory(captured=captured))
+        self.assertEqual(s, 200)
+        self.assertTrue(captured[0].startswith(
+            "https://external-api.kalshi.com/trade-api/v2/markets/KXBTC.1-2/orderbook"))
 
     def test_trading_endpoint_blocked(self):
         for p in ["trades", "portfolio/orders", "portfolio/positions", "auth/login", "portfolio/balances"]:

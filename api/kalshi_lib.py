@@ -35,23 +35,19 @@ from typing import Dict, List, Tuple
 
 KALSHI_BASE = "https://external-api.kalshi.com/trade-api/v2"
 
-# Allowlist: only these exact path shapes are proxied.
-ALLOWED_PATHS = [
-    re.compile(r"^series/[^/]+$"),                       # series/{ticker}
-    re.compile(r"^markets$"),                             # markets?series_ticker=...&status=...
-    re.compile(r"^markets/[^/]+/(orderbook|candlesticks)$"),  # markets/{ticker}/{orderbook|candlesticks}
-    re.compile(r"^historical/markets$"),                 # historical/markets?series_ticker=...&cursor=...
-    re.compile(r"^historical/cutoff$"),                  # historical/cutoff
+# Allowlist: only these exact path shapes are proxied, each paired with the
+# query params it may forward. Ticker/segment chars are restricted to
+# [\w.\-:]+ so '?', '#', '&', whitespace, etc. cannot enter the upstream URL
+# (defense-in-depth: segments are also URL-quoted at build time).
+# NOTE: candlesticks were removed — live smoke returned 404 for that path on
+# KXBTC15M markets, so it is not a real endpoint for this series.
+ALLOWED_PATHS: List[Tuple["re.Pattern", set]] = [
+    (re.compile(r"^series/[\w.\-:]+$"), {"cursor"}),
+    (re.compile(r"^markets$"), {"series_ticker", "status", "cursor", "limit"}),
+    (re.compile(r"^markets/[\w.\-:]+/orderbook$"), {"cursor"}),
+    (re.compile(r"^historical/markets$"), {"series_ticker", "cursor", "limit"}),
+    (re.compile(r"^historical/cutoff$"), set()),
 ]
-
-# Query params we forward per path (deny anything else to prevent param injection).
-ALLOWED_QUERY: Dict[str, set] = {
-    "series/": {"cursor"},
-    "markets": {"series_ticker", "status", "cursor", "limit"},
-    "markets/": {"cursor", "limit"},
-    "historical/markets": {"series_ticker", "cursor", "limit"},
-    "historical/cutoff": set(),
-}
 
 DEFAULT_ALLOWED_ORIGINS = [
     "https://silverline.global",
@@ -70,19 +66,29 @@ def _origin_ok(origin: str | None, allowed: List[str]) -> bool:
     return origin in allowed
 
 
+def _match_allowed(path: str):
+    """Return the matching (regex, allowed_params) entry, or None."""
+    for regex, params in ALLOWED_PATHS:
+        if regex.match(path):
+            return regex, params
+    return None
+
+
 def _path_allowed(path: str) -> bool:
-    return any(p.match(path) for p in ALLOWED_PATHS)
+    return _match_allowed(path) is not None
 
 
 def _allowed_query_for(path: str) -> set:
-    for prefix, params in ALLOWED_QUERY.items():
-        if path.startswith(prefix):
-            return params
-    return set()
+    m = _match_allowed(path)
+    return m[1] if m else set()
 
 
-def _strip_query(params: Dict[str, str], allowed: set) -> Dict[str, str]:
-    return {k: v for k, v in params.items() if k in allowed}
+def _build_upstream_url(path: str, query: Dict[str, str]) -> str:
+    # Quote each path segment so injected '?', '#', '&', spaces are encoded.
+    safe_path = "/".join(urllib.parse.quote(seg, safe="") for seg in path.split("/"))
+    upstream_query = {k: v for k, v in query.items() if k != "path" and k in _allowed_query_for(path)}
+    qs = urllib.parse.urlencode(upstream_query) if upstream_query else ""
+    return f"{KALSHI_BASE}/{safe_path}" + (f"?{qs}" if qs else "")
 
 
 def handle(
@@ -145,12 +151,8 @@ def handle(
         body = json.dumps({"error": "forbidden_path", "detail": "path not in allowlist"}).encode()
         return (403, _cors(origin, allowed), body)
 
-    # Build the sanitized upstream URL
-    upstream_query = _strip_query(query, _allowed_query_for(path))
-    # `path` itself must not be forwarded as a Kalshi query param
-    upstream_query.pop("path", None)
-    qs = urllib.parse.urlencode(upstream_query) if upstream_query else ""
-    url = f"{KALSHI_BASE}/{path}" + (f"?{qs}" if qs else "")
+    # Build the sanitized upstream URL (segments quoted, query stripped to allowlist)
+    url = _build_upstream_url(path, query)
 
     fetcher = fetch or _real_fetch
     try:
