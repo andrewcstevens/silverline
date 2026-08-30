@@ -108,6 +108,16 @@ def main() -> int:
     check("raw_leak fails", r.validation_outcome == "fail")
     check("raw_leak cites no_raw_kalshi_records", any(f.get("rule") == "no_raw_kalshi_records" for f in r.validation_failures), [f.get("rule") for f in r.validation_failures])
 
+    print("\n=== Test: broken auxiliary coverage rejected ===")
+    r = run_pipeline.run(fixtures["bad_aux_coverage"], prior_known_good=prior_kg, publish_target=pub_target, backup_dir=BACKUP_DIR)
+    check("bad_aux_coverage fails", r.validation_outcome == "fail")
+    check("bad_aux_coverage cites slot_coverage", any(f.get("rule") == "slot_coverage" for f in r.validation_failures), [f.get("rule") for f in r.validation_failures])
+
+    print("\n=== Test: stale (backwards data_end) rejected ===")
+    r = run_pipeline.run(fixtures["stale"], prior_known_good=prior_kg, publish_target=pub_target, backup_dir=BACKUP_DIR)
+    check("stale fails", r.validation_outcome == "fail")
+    check("stale cites collapse_check", any(f.get("rule") == "collapse_check" for f in r.validation_failures), [f.get("rule") for f in r.validation_failures])
+
     print("\n=== Test: restore returns last known-good ===")
     snap = backup.snapshot_known_good(prior_kg, BACKUP_DIR)
     check("snapshot created", os.path.exists(snap))
@@ -131,6 +141,9 @@ def main() -> int:
     srep = json.load(open(sp))
     required = {"run_utc", "candidate_path", "validation_outcome", "validation_failures", "backup_reference", "current_known_good_reference", "publication_status"}
     check("status has required fields", required.issubset(srep.keys()), sorted(srep.keys()))
+    check("status has candidate_generation_time", srep.get("candidate_generation_time") is not None, str(srep.get("candidate_generation_time")))
+    check("status has data_through_time", srep.get("data_through_time") is not None, str(srep.get("data_through_time")))
+    check("status has current_known_good_reference", srep.get("current_known_good_reference") is not None, str(srep.get("current_known_good_reference")))
 
     print("\n" + ("ALL PREVIEW TESTS PASSED" if not failures else f"{len(failures)} PREVIEW TEST FAILURES"))
     for f in failures:

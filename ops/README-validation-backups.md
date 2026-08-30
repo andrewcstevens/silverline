@@ -25,7 +25,7 @@ ops/
 ```
 
 Generated outputs (backups, simulated candidates, runs) live under
-`ops/_preview/`, `ops/backups/`, and `ops/runs/` — all gitignored.
+`ops/test/_preview/`, `ops/backups/`, and `ops/runs/` — all gitignored.
 
 ## Validation rules (all implemented)
 
@@ -42,11 +42,14 @@ Generated outputs (backups, simulated candidates, runs) live under
 5. **Sample sizes are nonnegative** — `n_deltas`/`n_up`/`n_down`, per-slot
    `n`/`up`; `up <= n`.
 6. **15-minute slot coverage** — `slots` covers all 96 fifteen-min labels
-   (`00:00` … `23:45`), each with `{slot,n,up,p_up,ci_lo,ci_hi}`.
+   (`00:00` … `23:45`), each with `{slot,n,up,p_up,ci_lo,ci_hi}`; plus
+   `day_slots`=48, `night_slots`=48, `weekdays`=7, and `slot_weekday` has all
+   96 slot keys.
 7. **Confidence intervals valid** — `0 <= ci_lo,ci_hi <= 1`, `ci_lo <= ci_hi`,
    and `p_up` lies within `[ci_lo, ci_hi]` per slot and for `best_edge`.
 8. **No collapse vs prior known-good** — rejects candidates whose `n_deltas`
-   dropped >25% or whose `p_up_overall` shifted >±0.20 vs the prior model.
+   dropped >25% or whose `p_up_overall` shifted >±0.20 vs the prior model, or
+   whose `data_end`/`data_through` went backwards vs the prior (stale data).
 9. **No raw Kalshi records** — scans candidate JSON for raw Kalshi field markers
    (`event_ticker`, `expiration_value`, `floor_strike`, `settlement_ts`,
    `volume_fp`, …). analysis.json must hold only computed aggregates.
@@ -85,10 +88,10 @@ python3 ops/test/run_preview_tests.py
 
 Generates a valid base model + broken variants (malformed JSON, bad probs,
 negative counts, missing slot coverage, bad CIs, collapsed, raw Kalshi leak)
-under `ops/_preview/` (gitignored), seeds a prior known-good from the valid base
+under `ops/test/_preview/` (gitignored), seeds a prior known-good from the valid base
 (NOT the production file), runs each through the pipeline, and asserts the
 expected rule fires. Also exercises backup, restore, smoke-test-failure
-restore, and the not-attempted path. All outputs stay under `ops/_preview/`.
+restore, and the not-attempted path. All outputs stay under `ops/test/_preview/`.
 
 ## What this does NOT do
 
@@ -96,6 +99,8 @@ restore, and the not-attempted path. All outputs stay under `ops/_preview/`.
 - No modification of master, production `index.html` / `analysis.json`, the live
   ledger, Vercel config, cron, env vars, domains, or deployment.
 - No committing of raw Kalshi data, secrets, or tokens.
-- Backups are durable files on disk (not only temporary workflow artifacts), but
-  production wiring of those backups into the live deploy is deferred to a later
-  OPS step with explicit approval.
+- Backups are durable files on disk, but the **default backup location
+  (`ops/backups/`) is local/dev gitignored storage**, not production-durable.
+  Production wiring must pass a durable backup directory/storage location in a
+  later OPS step with explicit approval. No automatic production rollback is
+  implemented yet.

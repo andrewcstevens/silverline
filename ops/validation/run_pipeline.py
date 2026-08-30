@@ -46,14 +46,26 @@ def run(
     - status_path: where to write the machine-readable status report.
     """
     result = validator.validate(candidate_path, prior_path=prior_known_good)
+    # candidate_generation_time: prefer declared generated_at, else fall back to
+    # the candidate file's mtime (current model has no generated_at field).
+    gen_at = result.candidate_generation_time
+    gen_src = "generated_at" if gen_at else None
+    if not gen_at:
+        try:
+            mt = os.path.getmtime(candidate_path)
+            gen_at = datetime.fromtimestamp(mt, timezone.utc).isoformat()
+            gen_src = "file_mtime"
+        except OSError:
+            gen_at = None
     report = StatusReport(
         run_utc=datetime.now(timezone.utc).isoformat(),
         candidate_path=candidate_path,
-        candidate_generation_time=result.candidate_generation_time,
+        candidate_generation_time=gen_at,
+        candidate_generation_time_source=gen_src,
         data_through_time=result.data_through_time,
         validation_outcome="pass" if result.ok else "fail",
-        validation_failures=[f.to_dict() if hasattr(f, "to_dict") else f for f in result.failures] if hasattr(result, "failures") else [],
-        current_known_good_reference=latest_known_good_path(backup_dir) if prior_known_good else None,
+        validation_failures=[],
+        current_known_good_reference=(latest_known_good_path(backup_dir) or prior_known_good) if prior_known_good else None,
         publication_status=NOT_ATTEMPTED,
     )
     # normalize failure dicts

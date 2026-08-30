@@ -51,7 +51,7 @@ def make_valid_model() -> dict:
         "day_slots": [_slot(i) for i in range(48)],
         "night_slots": [_slot(i) for i in range(48)],
         "weekdays": [{"weekday": d, "n": 14000, "up": 7000, "p_up": 0.5, "ci_lo": 0.48, "ci_hi": 0.52} for d in range(7)],
-        "slot_weekday": {s: {"n": 140, "up": 70, "p_up": 0.5, "ci_lo": 0.4, "ci_hi": 0.6} for s in SLOTS[:8]},
+        "slot_weekday": {s: {"n": 140, "up": 70, "p_up": 0.5, "ci_lo": 0.4, "ci_hi": 0.6} for s in SLOTS},
         "histogram": {"centers": [0], "counts": [100000], "p_up_overall": 0.502, "mean_bps": 0.14, "median_bps": 0.10, "std_bps": 25.4, "n": 100000},
         "top_edges": [{"slot": "09:30", "direction": "up", "p_win": 0.55, "p_up": 0.55, "ci_lo": 0.50, "ci_hi": 0.60, "n": 1000, "mean_bps": 1.2}] * 8,
         "best_edge": {"slot": "09:30", "direction": "up", "p_win": 0.55, "p_up": 0.55, "ci_lo": 0.50, "ci_hi": 0.60, "n": 1000, "mean_bps": 1.2},
@@ -110,6 +110,17 @@ def generate_all() -> dict[str, str]:
     leak = copy.deepcopy(base)
     leak["_stray_kalshi"] = {"event_ticker": "KXBTC15M-26AUG292145", "floor_strike": 78073.57, "expiration_value": "78073.57"}
     paths["raw_leak"] = _write("raw_leak.json", leak)
+
+    # 9. auxiliary coverage broken: slots full but day_slots short + slot_weekday missing keys
+    aux = copy.deepcopy(base)
+    aux["day_slots"] = aux["day_slots"][:10]
+    aux["slot_weekday"] = {k: aux["slot_weekday"][k] for k in list(aux["slot_weekday"])[:5]}
+    paths["bad_aux_coverage"] = _write("bad_aux_coverage.json", aux)
+
+    # 10. stale data: data_end older than the prior known-good
+    stale = copy.deepcopy(base)
+    stale["data_end"] = "2020-01-01T00:00:00+00:00"
+    paths["stale"] = _write("stale.json", stale)
 
     return paths
 

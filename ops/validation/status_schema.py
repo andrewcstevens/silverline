@@ -16,11 +16,12 @@ class StatusReport:
     run_utc: str
     candidate_path: str
     candidate_generation_time: Optional[str] = None
+    candidate_generation_time_source: Optional[str] = None  # "generated_at" | "file_mtime"
     data_through_time: Optional[str] = None
     validation_outcome: str = "fail"        # "pass" | "fail"
     validation_failures: list[dict] = field(default_factory=list)
     backup_reference: Optional[str] = None   # snapshot path taken BEFORE swapping
-    current_known_good_reference: Optional[str] = None  # latest-known-good.json path
+    current_known_good_reference: Optional[str] = None  # latest-known-good.json path or prior path
     publication_status: str = NOT_ATTEMPTED  # held | passed | restored | not_attempted
 
     def to_dict(self) -> dict[str, Any]:

@@ -167,6 +167,21 @@ def validate(candidate_path: str, prior_path: Optional[str] = None) -> Validatio
         if missing_slots:
             failures.append(ValidationFailure("slot_coverage", f"missing {len(missing_slots)} 15-min slots: {sorted(missing_slots)[:8]}"))
 
+    # Auxiliary coverage: day_slots=48, night_slots=48, weekdays=7, slot_weekday has all 96 keys
+    for key, expected in (("day_slots", 48), ("night_slots", 48), ("weekdays", 7)):
+        v = m.get(key)
+        if isinstance(v, list) and len(v) != expected:
+            failures.append(ValidationFailure("slot_coverage", f"{key} has {len(v)} entries, expected {expected}"))
+        elif not isinstance(v, list):
+            failures.append(ValidationFailure("slot_coverage", f"{key} is not a list"))
+    sw = m.get("slot_weekday")
+    if isinstance(sw, dict):
+        missing_sw = set(S.FIFTEEN_MIN_SLOTS) - set(sw.keys())
+        if missing_sw:
+            failures.append(ValidationFailure("slot_coverage", f"slot_weekday missing {len(missing_sw)} slot keys"))
+    elif sw is not None:
+        failures.append(ValidationFailure("slot_coverage", "slot_weekday is not a dict"))
+
     # --- Rule 7: best_edge CI sanity ---
     be = m.get("best_edge")
     if isinstance(be, dict):
@@ -193,6 +208,12 @@ def validate(candidate_path: str, prior_path: Optional[str] = None) -> Validatio
                 if _is_number(cp) and _is_number(pp) and abs(cp - pp) > S.MAX_P_UP_SHIFT:
                     failures.append(ValidationFailure(
                         "collapse_check", f"p_up_overall shifted {cp-pp:+.3f} vs prior ({pp}->{cp}); max allowed ±{S.MAX_P_UP_SHIFT}"))
+                # stale data: candidate data_end must not go backwards vs prior
+                c_de = _iso_parse(m.get("data_end")) or _iso_parse(m.get("data_through"))
+                p_de = _iso_parse(prior.get("data_end")) or _iso_parse(prior.get("data_through"))
+                if c_de and p_de and c_de < p_de:
+                    failures.append(ValidationFailure(
+                        "collapse_check", f"data_end went backwards vs prior ({p_de.isoformat()} -> {c_de.isoformat()})"))
         except (OSError, ValueError) as e:
             failures.append(ValidationFailure("collapse_check", f"could not load prior known-good: {e}"))
 
