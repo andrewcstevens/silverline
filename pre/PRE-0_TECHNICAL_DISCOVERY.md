@@ -36,6 +36,8 @@ Two functions, pure-Python, no production dependency:
 
 ### `price_aware_signal(slot, direction, p_win, ci_lo, ci_hi, n, price_cents, min_edge_pp=0)`
 
+Takes the **side-adjusted** `p_win`. For `Under`, convert from the Over-side `p_up` via `from_p_up(direction, p_up, ci_up_lo, ci_up_hi)`, which sets `p_win = 1 - p_up` AND flips the CI: `ci_lo = 1 - ci_up_hi`, `ci_hi = 1 - ci_up_lo`. (The live `index.html` does `p_win = direction==='Over' ? p_up : 1-p_up`; PRE-0 adds the CI flip, which the live code omits for significance — a quiet gap.)
+
 Verdict logic:
 
 | Verdict | Condition | Meaning |
@@ -45,7 +47,7 @@ Verdict logic:
 | **PASS** | zero or negative EV | The contract is too expensive for this win rate |
 
 Key formulas (mirror `renderEV`):
-- `ev_per_dollar = p_win - price_cents/100`
+- `ev_per_dollar = p_win - price_cents/100`  — expected $ profit per $1 of **notional** payout exposure (this is the live `renderEV` `ev/stake` value; it's the quantity the BUY/PASS threshold is defined on). True cash ROI per $1 **spent** is higher by the leverage factor: `roi = ev_per_dollar / (price_cents/100)` = `p_win*100/price_cents - 1`.
 - `break_even_price_cents = p_win * 100`
 - `edge_pp = p_win*100 - price_cents`
 - `sig_at_price = ci_lo > price_dollars` (the 95% CI excludes the cost — the price-aware upgrade of the legacy "CI excludes 50%" significance flag)

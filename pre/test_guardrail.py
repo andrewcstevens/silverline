@@ -8,7 +8,7 @@ import os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 import unittest
 
-from guardrail import price_aware_signal, golden_window, SlotEdge
+from guardrail import price_aware_signal, golden_window, from_p_up, SlotEdge
 
 
 def _edge(slot, p_win, ci_lo, ci_hi, n=600, minutes=30, direction="Over", sig=True):
@@ -49,11 +49,26 @@ class SingleSlotTests(unittest.TestCase):
         self.assertFalse(s.sig_at_price)  # 0.48 < 0.50
         self.assertEqual(s.verdict, "SPECULATIVE")
 
-    def test_under_side_uses_one_minus_p_up(self):
-        # direction Under: p_win = 1 - p_up. A 48% Up slot is a 52% Under bet.
-        s = price_aware_signal("14:00", "Under", 0.52, 0.505, 0.535, n=872, price_cents=50)
+    def test_under_side_conversion_flips_ci(self):
+        # A 48% Up slot is a 52% Under bet. The CI must also flip:
+        # Under ci_lo = 1 - ci_up_hi,  Under ci_hi = 1 - ci_up_lo.
+        # Up CI [0.465, 0.495] -> Under CI [0.505, 0.535], which excludes 50¢ -> BUY at 50¢.
+        p_win, ci_lo, ci_hi = from_p_up("Under", 0.48, 0.465, 0.495)
+        self.assertAlmostEqual(p_win, 0.52)
+        self.assertAlmostEqual(ci_lo, 0.505)   # 1 - 0.495
+        self.assertAlmostEqual(ci_hi, 0.535)   # 1 - 0.465
+        s = price_aware_signal("14:00", "Under", p_win, ci_lo, ci_hi, n=872, price_cents=50)
         self.assertEqual(s.verdict, "BUY")
         self.assertAlmostEqual(s.edge_pp, 2.0)
+
+    def test_under_conversion_preserves_pass_when_ci_includes_price(self):
+        # Up CI [0.44, 0.52] (includes 50¢) -> Under CI [0.48, 0.56] (also includes 50¢)
+        # -> positive EV but SPECULATIVE, not BUY.
+        p_win, ci_lo, ci_hi = from_p_up("Under", 0.48, 0.44, 0.52)
+        s = price_aware_signal("14:00", "Under", p_win, ci_lo, ci_hi, n=872, price_cents=50)
+        self.assertAlmostEqual(p_win, 0.52)
+        self.assertAlmostEqual(ci_lo, 0.48)
+        self.assertEqual(s.verdict, "SPECULATIVE")
 
     def test_min_edge_threshold_blocks_marginal_buy(self):
         # +2pp EV but min_edge_pp=3 -> not enough edge -> SPECULATIVE (positive EV, below threshold)

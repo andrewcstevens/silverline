@@ -31,13 +31,26 @@ class PriceAwareSignal:
     ci_hi: float              # 0..1 upper bound
     n: int
     price_cents: float        # contract cost in cents per $1 payout (1..99)
-    ev_per_dollar: float      # expected $ return per $1 staked
+    ev_per_dollar: float      # expected $ profit per $1 of NOTIONAL payout exposure
+                              # (matches live renderEV ev/stake; NOT cash ROI per $1 spent)
     break_even_price_cents: float  # price (¢) at which EV = 0
-    edge_pp: float            # edge vs price, in percentage points
-    positive_ev: bool         # ev_per_dollar > 0
+    edge_pp: float            # edge vs price, in percentage points (= ev_per_dollar*100)
+    positive_ev: bool         # ev_per_dollar > 0  (i.e. p_win*100 > price_cents)
     sig_at_price: bool        # CI lower bound excludes the contract price
     verdict: str              # 'BUY' | 'SPECULATIVE' | 'PASS'
     reason: str
+
+
+def from_p_up(direction: str, p_up: float, ci_up_lo: float, ci_up_hi: float):
+    """Convert an Over-side probability (and its CI) to the chosen side's.
+
+    For 'Over', p_win = p_up. For 'Under', p_win = 1 - p_up AND the CI bounds
+    flip: the lower bound becomes 1 - ci_up_hi, the upper 1 - ci_up_lo.
+    Returns (p_win, ci_lo, ci_hi).
+    """
+    if direction == "Over":
+        return p_up, ci_up_lo, ci_up_hi
+    return (1.0 - p_up), (1.0 - ci_up_hi), (1.0 - ci_up_lo)
 
 
 def price_aware_signal(
@@ -61,7 +74,7 @@ def price_aware_signal(
       PASS       — negative or zero EV (the contract is too expensive for this win rate).
     """
     price_dollars = price_cents / 100.0
-    ev_per_dollar = p_win - price_dollars
+    ev_per_dollar = p_win - price_dollars   # $ profit per $1 notional (live renderEV ev/stake)
     break_even_price_cents = p_win * 100.0
     edge_pp = (p_win - price_dollars) * 100.0
     positive_ev = ev_per_dollar > 0
