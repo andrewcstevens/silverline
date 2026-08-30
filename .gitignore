@@ -1,1 +1,9 @@
 .vercel
+
+# OPS-02 validation/backup system — generated outputs (not source)
+# backups, simulated candidates, status runs, and preview test scratch.
+# `_preview/` matches at any depth (ops/_preview/, ops/test/_preview/).
+_preview/
+ops/backups/
+ops/runs/
+ops/candidates/
