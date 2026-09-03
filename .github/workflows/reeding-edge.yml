@@ -1,0 +1,57 @@
+# Reeding Edge — scheduled 15-min collection run.
+#
+# STATUS: DISABLED by default. Triggered ONLY by manual workflow_dispatch.
+# The `schedule:` cron block below is intentionally commented out and MUST NOT
+# be enabled until Andrew approves the 3 items in
+#   ops/briefs/REEDING_RUNTIME_APPROVALS.md
+# (Vercel Blob store created, BLOB_READ_WRITE_TOKEN added, go-live approved).
+#
+# This workflow is safe to merge while disabled: a manual run with no token and
+# no @vercel/blob dependency exits 0 as a no-op (see src/reeding/collect.js).
+name: Reeding Edge
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry-run only (no storage writes even if token present)"
+        required: false
+        default: "true"
+
+# ──────────────────────────────────────────────────────────────────────────
+# ENABLE AFTER APPROVAL — do not uncomment until the 3 approval items in
+# ops/briefs/REEDING_RUNTIME_APPROVALS.md are complete:
+#   1. Vercel Blob store created (free Hobby tier)
+#   2. Repo secret BLOB_READ_WRITE_TOKEN added
+#   3. Andrew approves going live
+# Then: uncomment the `schedule:` block below AND add `schedule:` under `on:`
+# above. Keep runs idempotent — late/missed runs must not backfill forecasts.
+# ──────────────────────────────────────────────────────────────────────────
+# schedule:
+#   - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reeding-edge-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Collect reeding edge
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+        run: node src/reeding/collect.js
