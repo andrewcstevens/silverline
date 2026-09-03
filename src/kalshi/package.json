@@ -1,0 +1,24 @@
+{
+  "name": "@silverline/kalshi-client",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only TypeScript client for Kalshi's PUBLIC market-data API. No auth, no trading, no orderbook.",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsc -p tsconfig.json --noEmit && node --test dist/__tests__/",
+    "test:live": "KALSHI_LIVE=1 node --test dist/__tests__/live.test.js",
+    "test:unit": "tsc -p tsconfig.json --noEmit && node --test dist/__tests__/series.test.js dist/__tests__/markets.test.js dist/__tests__/candlesticks.test.js dist/__tests__/resolve.test.js dist/__tests__/client.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
