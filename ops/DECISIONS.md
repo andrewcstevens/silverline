@@ -54,3 +54,13 @@ Material Founder decisions only. Each entry: date, decision, rationale, scope, r
 - **Rationale:** Lets the CTO make progress while keeping production immutable.
 - **Scope:** All unattended CTO work.
 - **Reversal condition:** Andrew explicitly authorizes a specific production change, recorded here.
+
+---
+
+## D-008 — COO command consolidation (standing)
+- **Date:** 2026-09-02
+- **Decision:** The COO command thread becomes the sole active Silverline command interface. CTO, CXO, and ECD external conversations are reclassified as advisory/archived — not active direct reports — and receive no new direct Founder assignments. Specialist expertise operates as bounded internal subagents inside a single COO-owned Computer task. GitHub's `COMMAND_CENTER.md`, `WORK_QUEUE.md`, and `DECISIONS.md` are the shared institutional record; no Founder manual relay of context between agent chats is required going forward. Reeding Edge's continuous 15-minute operational collection runs via deployed code / GitHub Actions, not Perplexity scheduled tasks; the 2,000-credit cap applies only to finite build/review/audit work.
+- **Rationale:** Eliminated an operational failure mode where Andrew was manually relaying context between disconnected agent chat threads instead of a real orchestration layer doing it.
+- **Scope:** All Silverline coordination, going forward, until explicitly revised.
+- **Reversal condition:** Andrew explicitly restores direct multi-thread reporting or revises the orchestration model, recorded here.
+- **Explicitly retained:** No real-money execution. No automated trading. All existing approval gates (paid resources, secrets/permissions, production changes, data-integrity incidents, cap overruns) remain in force. No existing Perplexity conversation thread was deleted or altered by this decision — only their role in the operating model changed.

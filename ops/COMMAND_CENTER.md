@@ -83,3 +83,37 @@ Stopping and waiting for Andrew. Open Founder decisions: #1 merge approval, #2 b
 - Raw Kalshi archives and credentials stay private and out of public Git.
 - The Kalshi proxy stays public-market-data-only; never exposes account/trading endpoints.
 - Browser-visible reusable bearer tokens are anti-abuse, not a production-grade secret / access-control solution.
+
+---
+
+## ACTIVE OPERATING MODEL — COO COMMAND CONSOLIDATION (OPS-05)
+
+**Effective:** 2026-09-02 PT
+**Supersedes:** Prior multi-thread direct-report model (CTO/CXO/ECD/Copy Editor as separate active chat threads).
+**Status:** Active governing priority. This is an additive addendum; all prior Command Center content above remains in force except where explicitly superseded by this section.
+
+### Single command interface
+
+- The **COO command thread** is the sole active Silverline command interface. The Founder (Andrew) issues direction to the COO only.
+- **CTO, CXO, ECD, and Copy Editor external conversations are archived/advisory only.** They no longer receive direct Founder assignments, do not require manual context relay, and are not depended on as active direct reports.
+- Specialist expertise (technical/data, product/flow, visual/system coherence, terminology/compliance-copy) is invoked **only as bounded internal subagents** inside a single COO-owned Computer task — not as separate chats Andrew must sync.
+
+### Institutional record
+
+- GitHub `ops/COMMAND_CENTER.md`, `ops/WORK_QUEUE.md`, and `ops/DECISIONS.md` are the **shared institutional source of truth**. Every role reads the current control branch before acting.
+- **No Founder relay of existing context.** The COO packages directives into the control files; specialist lanes retrieve them — Andrew never copy-pastes a briefing between chats.
+
+### Reeding Edge runtime
+
+- Reeding Edge operational collection (15-minute Assay creation, settlement, Census, Grade) **runs continuously only through deployed code and GitHub Actions** — not through credit-consuming Perplexity scheduled tasks.
+- Perplexity credits are reserved for finite build/review/audit work under the 2,000-credit cap. The operational system does not spend that cap.
+
+### Retained gates
+
+- Founder approval is still required for: paid resources/tiers, secrets/permissions, production deploys/config changes, data-integrity incidents, and cap overruns.
+- No real-money order execution. No automated trading. Manual decision support only.
+- Founder Frequency SMS may be sent **only by the deployed scheduler** for pre-defined major blockers — not via a human chat relay.
+
+### Founder's only inbound obligations
+
+Andrew is contacted only for genuine approval gates: a paid resource, a secret/permission change, a production change, a data-integrity incident, two consecutive missed Assays, stale reference data across three runs, or the 2,000-credit cap at risk.

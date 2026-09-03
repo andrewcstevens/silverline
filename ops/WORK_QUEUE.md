@@ -25,3 +25,17 @@ Ordered by dependency, not by priority. Dependency column says what must be true
 - A task moves to `In Progress` only when its dependencies are met or explicitly waived by the Founder.
 - `Waiting for Founder` tasks list the exact decision needed (cross-reference Founder Inbox in COMMAND_CENTER.md).
 - No task in `Blocked` is retried by brute force — the blocker is documented and the least-invasive next action is recorded.
+
+---
+
+## COO COMMAND CONSOLIDATION — COORDINATION RULE (OPS-05)
+
+**Effective:** 2026-09-02 PT · **Additive addendum; all prior queue entries above remain in force.**
+
+- All active Silverline work is routed through **COO ownership** and recorded in this control plane (`COMMAND_CENTER.md` / `WORK_QUEUE.md` / `DECISIONS.md`).
+- Former direct-report threads (CTO, CXO, ECD, Copy Editor) are **advisory/archived only**. They receive no new direct Founder assignments and require no manual context relay from Andrew.
+- Specialist functions execute as **bounded internal subagents** under a single COO-owned Computer task, not as separate chats.
+- **Reeding Edge priority (P0):** the immutable prospective Assay lifecycle, Census, and Grade remain the top-priority workstream (RE-0 through RE-4). Dashboard/visual work is downstream of a genuine prospective Assay.
+- **Reeding Edge runtime:** operational collection runs via deployed code / GitHub Actions, not credit-consuming Perplexity scheduled tasks. The 2,000-credit cap covers finite build/review/audit work only.
+- **No Founder relay:** the COO writes directives into the control files; specialist lanes retrieve them. Andrew is never asked to copy-paste a briefing between agent chats.
+- Founder is contacted only at a genuine approval gate (paid resource, secret/permission, production change, data-integrity incident, cap overrun, two missed Assays, or stale reference data across three runs).
