@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Silverline · The Mint (Study)</title>
+<style>
+/* ============ THE MINT — cold patinated metal, provenance over prediction ============ */
+:root{
+  --bg:#0c0f10;
+  --metal:#14191a;
+  --metal-2:#1a2122;
+  --metal-3:#222a2b;
+  --line:rgba(200,210,205,.10);
+  --line-strong:rgba(200,210,205,.22);
+  --ink:#dde6e2;
+  --ink-mut:#8a958f;
+  --ink-faint:#718079;
+  --patina:#6fa389;         /* oxidized brass-green, the single accent */
+  --patina-glow:rgba(111,163,137,.16);
+  --up:#7fbf9a;
+  --down:#c98a6b;
+  --amber:#b89757;
+  --font-display:'Fraunces', Georgia, serif;
+  --font-body:'IBM Plex Mono', ui-monospace, 'JetBrains Mono', monospace;
+  --font-ui:'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg)}
+body{
+  min-height:100dvh;
+  font-family:var(--font-ui);
+  color:var(--ink);
+  background:
+    linear-gradient(180deg, rgba(111,163,137,.05), transparent 40%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.012) 0 2px, transparent 2px 4px),
+    var(--bg);
+  -webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.app{max-width:440px; margin:0 auto; padding:24px 20px 68px; position:relative}
+
+/* engraved topbar */
+.topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:30px; padding-bottom:18px; border-bottom:1px solid var(--line-strong)}
+.mark{display:flex; align-items:center; gap:10px}
+.mark svg{width:24px; height:24px; color:var(--patina)}
+.wordmark{font-family:var(--font-display); font-size:19px; font-weight:500; letter-spacing:.2px; color:var(--ink)}
+.meta{font-family:var(--font-body); font-size:9.5px; color:var(--ink-faint); letter-spacing:.16em; text-transform:uppercase; text-align:right; line-height:1.6}
+
+/* provenance strip — mint metaphor: struck, hallmarked, dated */
+.provenance{display:flex; gap:0; border:1px solid var(--line-strong); border-radius:8px; overflow:hidden; margin-bottom:24px; background:var(--metal)}
+.provenance .seg{flex:1; padding:10px 8px; text-align:center; border-right:1px solid var(--line)}
+.provenance .seg:last-child{border-right:none}
+.provenance .seg .k{font-family:var(--font-body); font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint)}
+.provenance .seg .v{font-family:var(--font-body); font-size:11px; color:var(--ink-mut); margin-top:3px; letter-spacing:.04em}
+
+/* struck plate — field state */
+.plate{
+  background:linear-gradient(155deg, var(--metal-2), var(--metal));
+  border:1px solid var(--line-strong);
+  border-radius:16px;
+  padding:26px 22px 22px;
+  margin-bottom:14px;
+  position:relative;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 1px 0 rgba(0,0,0,.3);
+}
+.plate .hallmark{position:absolute; top:14px; right:16px; font-family:var(--font-body); font-size:9px; letter-spacing:.2em; color:var(--patina); text-transform:uppercase; border:1px solid rgba(111,163,137,.35); padding:3px 7px; border-radius:4px}
+.plate .kicker{font-family:var(--font-body); font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px}
+.plate .label{font-family:var(--font-display); font-size:42px; font-weight:400; line-height:1; color:var(--ink); letter-spacing:.5px}
+.plate .companion{font-family:var(--font-ui); font-size:13px; color:var(--ink-mut); margin-top:12px; line-height:1.5}
+.plate .qualifier{font-family:var(--font-body); font-size:10.5px; color:var(--ink-faint); margin-top:9px; letter-spacing:.02em}
+
+/* window rule */
+.win{display:flex; justify-content:space-between; align-items:baseline; padding:13px 2px; border-bottom:1px solid var(--line); margin-bottom:14px}
+.win .k{font-family:var(--font-body); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-faint)}
+.win .v{font-family:var(--font-display); font-size:20px; color:var(--ink)}
+.win .r{font-family:var(--font-body); font-size:11.5px; color:var(--patina)}
+
+/* ingot cards */
+.ingot{background:var(--metal); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:12px}
+.ingot .h{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:4px}
+.ingot .t{font-family:var(--font-body); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-faint); flex:none}
+.ingot .s{font-family:var(--font-body); font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber); border:1px solid rgba(184,151,87,.3); padding:3px 6px; border-radius:4px; flex:none; white-space:nowrap}
+.ingot .model{font-family:var(--font-body); font-size:10px; color:var(--ink-faint); margin-bottom:12px}
+
+.row{display:flex; justify-content:space-between; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row .k{font-family:var(--font-body); font-size:11px; color:var(--ink-mut)}
+.row .v{font-family:var(--font-display); font-size:19px; color:var(--ink); font-variant-numeric:tabular-nums lining-nums}
+.row .v .u{font-size:11px; color:var(--ink-faint); margin-left:2px}
+.rate .v{color:var(--up)}
+
+.dir{display:flex; align-items:center; gap:8px; margin:4px 0 6px}
+.dir .g{width:18px; height:18px; border-radius:5px; background:rgba(127,191,154,.1); border:1px solid rgba(127,191,154,.3); display:flex; align-items:center; justify-content:center}
+.dir .g svg{width:11px; height:11px; stroke:var(--up); fill:none; stroke-width:2.4}
+.dir .tx{font-family:var(--font-body); font-size:12.5px; color:var(--up)}
+.dir .pc{font-family:var(--font-display); font-size:15px; color:var(--ink); margin-left:auto}
+
+/* edge gauge — engraved arc */
+.gauge{margin-top:16px; display:flex; align-items:center; gap:14px}
+.gauge svg{width:64px; height:64px; flex:none}
+.gauge .ginfo .gl{font-family:var(--font-body); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint)}
+.gauge .gv{font-family:var(--font-display); font-size:17px; color:var(--ink); margin-top:3px}
+.gauge .gv .u{font-size:11px; color:var(--ink-faint)}
+
+/* quote surface */
+.qyes{display:flex; gap:10px; margin-bottom:12px}
+.qyn{flex:1; background:var(--metal-2); border:1px solid var(--line); border-radius:9px; padding:12px; text-align:center}
+.qyn .l{font-family:var(--font-body); font-size:9.5px; letter-spacing:.12em; color:var(--ink-faint)}
+.qyn .p{font-family:var(--font-display); font-size:25px; color:var(--ink); font-variant-numeric:tabular-nums; margin-top:3px}
+.qyn.no .p{color:var(--ink-mut)}
+.qfresh{font-family:var(--font-body); font-size:10.5px; color:var(--ink-mut); padding-top:10px; border-top:1px solid var(--line); display:flex; align-items:center; gap:7px}
+.qfresh .d{width:7px; height:7px; border-radius:50%; background:var(--amber)}
+.qnote{font-family:var(--font-ui); font-size:11.5px; color:var(--ink-mut); margin-top:9px; line-height:1.5}
+
+/* actions */
+.actions{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:20px 0}
+.btn{font-family:var(--font-body); font-size:11.5px; background:var(--metal-2); color:var(--ink); border:1px solid var(--line-strong); border-radius:8px; padding:13px 6px; cursor:pointer; transition:border-color .2s, color .2s, background .2s}
+.btn:hover, .btn:focus-visible{border-color:var(--patina); color:var(--patina); outline:none}
+.btn.primary{border-color:var(--patina); color:var(--patina); background:var(--patina-glow)}
+
+.compliance{font-family:var(--font-ui); font-size:10.5px; color:var(--ink-faint); line-height:1.6; padding-top:16px; border-top:1px solid var(--line)}
+.compliance strong{color:var(--ink-mut); font-weight:500}
+.compliance .em{color:var(--ink-mut)}
+
+.fixture{display:block; width:max-content; max-width:92%; margin:22px auto 0; font-family:var(--font-body); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); background:rgba(20,25,26,.9); border:1px solid var(--line); padding:7px 14px; border-radius:99px; text-align:center}
+
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9 L12 5 L20 9 L12 13 Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4 9 V15 L12 19 V13 M20 9 V15 L12 19" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      <span class="wordmark">Silverline</span>
+    </div>
+    <div class="meta">ECD-02 Study<br>The Mint</div>
+  </header>
+
+  <div class="provenance" aria-label="Provenance">
+    <div class="seg"><div class="k">Struck</div><div class="v">Fixture</div></div>
+    <div class="seg"><div class="k">Hallmark</div><div class="v">Replay</div></div>
+    <div class="seg"><div class="k">Dated</div><div class="v">Historical</div></div>
+  </div>
+
+  <section class="plate" aria-label="Field State">
+    <span class="hallmark">Watch</span>
+    <div class="kicker">Field State</div>
+    <h1 class="label">Watch</h1>
+    <p class="companion">Some conditions align. Evidence and price still require manual review.</p>
+    <p class="qualifier">Historical alignment can change with price, freshness, and market regime.</p>
+  </section>
+
+  <section class="win" aria-label="Window">
+    <div><div class="k">Window</div><div class="v">09:45–10:00 ET</div></div>
+    <div style="text-align:right"><div class="k">Remaining</div><div class="r">08:42</div></div>
+  </section>
+
+  <section class="ingot" aria-label="Evidence">
+    <div class="h"><div class="t">Evidence</div><div class="s">Historical</div></div>
+    <div class="model">Model through 2026-08-30</div>
+    <div class="dir" role="status" aria-label="Historical direction: Up">
+      <span class="g" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M2 8 L6 4 L10 8"/></svg></span>
+      <span class="tx">Favors Up</span>
+      <span class="pc">54.8%</span>
+    </div>
+    <div class="row rate"><span class="k">Observed historical rate</span><span class="v">54.8<span class="u">%</span></span></div>
+    <div class="row"><span class="k">Evidence Range <span style="color:var(--ink-faint)">(95% CI)</span></span><span class="v" style="font-size:14px">49.2–60.3%</span></div>
+    <div class="row"><span class="k">Observation Count</span><span class="v" style="font-size:14px">n = 438</span></div>
+
+    <div class="gauge" aria-label="Price-adjusted edge gauge">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(200,210,205,.12)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="var(--patina)" stroke-width="6" stroke-linecap="round" stroke-dasharray="163" stroke-dashoffset="78" transform="rotate(135 32 32)"/>
+      </svg>
+      <div class="ginfo">
+        <div class="gl">Price-Adjusted Edge</div>
+        <div class="gv">+2.8<span class="u">¢ EV</span></div>
+        <div class="gl" style="margin-top:6px">At displayed reference price</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ingot" aria-label="Quote Surface">
+    <div class="h"><div class="t">Quote Surface</div><div class="s">Kalshi reference</div></div>
+    <div class="qyes">
+      <div class="qyn"><div class="l">Yes</div><div class="p">54¢</div></div>
+      <div class="qyn no"><div class="l">No</div><div class="p">46¢</div></div>
+    </div>
+    <div class="qfresh"><span class="d" aria-hidden="true"></span>Reference Feed delayed · 11 sec ago</div>
+    <p class="qnote">Reference only. Manual decision required.</p>
+  </section>
+
+  <nav class="actions" aria-label="Inspect actions">
+    <button class="btn primary">Inspect entry</button>
+    <button class="btn">Review evidence</button>
+    <button class="btn">Compare price</button>
+    <button class="btn">View methodology</button>
+  </nav>
+
+  <footer class="compliance">
+    <strong>Silverline</strong> is a historical backtest and probability-context tool, not financial advice. At a 15-minute scale, BTC is close to a random walk; slot effects can be weak, regime-dependent, and statistically fragile. <span class="em">Coinbase BTC-USD spot proxy — not prediction-market settlement data.</span> Past performance does not predict future results.
+  </footer>
+</main>
+<div class="fixture">Fixture · Replay · Historical · Not live</div>
+</body>
+</html>

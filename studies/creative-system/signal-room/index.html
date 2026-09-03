@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Silverline · The Signal Room (Study)</title>
+<style>
+/* ============ THE SIGNAL ROOM — structured grid, tabular, operational ============ */
+:root{
+  --bg:#080a0c;
+  --panel:#0d1115;
+  --panel-2:#11161b;
+  --grid-line:rgba(150,170,185,.08);
+  --grid-line-strong:rgba(150,170,185,.16);
+  --ink:#dce4ea;
+  --ink-mut:#7d8c98;
+  --ink-faint:#6b7681;
+  --accent:#5a9fb0;          /* instrument cyan, single accent */
+  --accent-dim:rgba(90,159,176,.16);
+  --up:#74b48a;
+  --down:#c98a6b;
+  --amber:#b89757;
+  --font-display:'Newsreader', Georgia, serif;
+  --font-body:'JetBrains Mono', ui-monospace, monospace;
+  --font-ui:'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg)}
+body{
+  min-height:100dvh;
+  font-family:var(--font-ui);
+  color:var(--ink);
+  background:
+    linear-gradient(rgba(90,159,176,.04), transparent 60%),
+    var(--bg);
+  -webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.app{max-width:440px; margin:0 auto; padding:18px 16px 68px}
+
+/* header rail */
+.rail{display:flex; align-items:center; justify-content:space-between; padding-bottom:12px; border-bottom:1px solid var(--grid-line-strong); margin-bottom:0}
+.rail .left{display:flex; align-items:center; gap:9px}
+.rail svg{width:20px; height:20px; color:var(--accent)}
+.rail .wm{font-family:var(--font-display); font-size:17px; color:var(--ink)}
+.rail .right{font-family:var(--font-body); font-size:9px; color:var(--ink-faint); letter-spacing:.16em; text-transform:uppercase; text-align:right; line-height:1.6}
+
+/* status strip */
+.strip{display:flex; border-left:1px solid var(--grid-line); border-right:1px solid var(--grid-line); border-bottom:1px solid var(--grid-line-strong); background:var(--panel)}
+.strip .cell{flex:1; padding:8px 6px; border-right:1px solid var(--grid-line); text-align:center}
+.strip .cell:last-child{border-right:none}
+.strip .k{font-family:var(--font-body); font-size:8px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint)}
+.strip .v{font-family:var(--font-body); font-size:10px; color:var(--ink-mut); margin-top:2px}
+.strip .v.amber{color:var(--amber)}
+
+/* signal room core: the state block */
+.core{border:1px solid var(--grid-line-strong); border-top:none; background:var(--panel); padding:20px 18px; margin-bottom:14px}
+.core .coord{font-family:var(--font-body); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:8px; display:flex; justify-content:space-between}
+.core .coord .live{color:var(--amber)}
+.core .state{font-family:var(--font-display); font-size:38px; line-height:1; color:var(--ink); letter-spacing:.3px; display:flex; align-items:center; gap:12px}
+.core .state .ind{width:8px; height:8px; background:var(--accent); border-radius:1px; box-shadow:0 0 0 3px var(--accent-dim)}
+.core .companion{font-family:var(--font-ui); font-size:12.5px; color:var(--ink-mut); margin-top:11px; line-height:1.5}
+.core .qual{font-family:var(--font-body); font-size:10px; color:var(--ink-faint); margin-top:7px}
+
+/* tabular data block */
+table{width:100%; border-collapse:collapse}
+.tbl-wrap{border:1px solid var(--grid-line-strong); border-radius:0; overflow:hidden; margin-bottom:12px}
+.tbl-wrap .th{background:var(--panel-2); padding:9px 14px; font-family:var(--font-body); font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-faint); border-bottom:1px solid var(--grid-line-strong); display:flex; justify-content:space-between; align-items:center; gap:8px}
+.tbl-wrap .th .st{font-size:8.5px; color:var(--amber); border:1px solid rgba(184,151,87,.3); padding:2px 6px; border-radius:3px; letter-spacing:.1em; flex:none; white-space:nowrap}
+table td{padding:11px 14px; border-bottom:1px solid var(--grid-line); font-family:var(--font-body); font-size:11.5px; vertical-align:middle}
+table tr:last-child td{border-bottom:none}
+table td .k{color:var(--ink-mut); font-size:10.5px}
+table td .v{color:var(--ink); font-size:13px; font-variant-numeric:tabular-nums lining-nums; float:right}
+table td .v .u{color:var(--ink-faint); font-size:10px; margin-left:2px}
+tr.dir-row td{background:rgba(116,180,138,.05)}
+tr.dir-row td .v{color:var(--up)}
+
+.dir-cell{display:flex; align-items:center; gap:8px}
+.dir-cell .g{width:16px; height:16px; border-radius:3px; background:rgba(116,180,138,.12); border:1px solid rgba(116,180,138,.3); display:flex; align-items:center; justify-content:center}
+.dir-cell .g svg{width:10px; height:10px; stroke:var(--up); fill:none; stroke-width:2.4}
+.dir-cell .tx{font-size:11px; color:var(--up)}
+
+/* mini sparkline row */
+.spark-row td{padding:14px}
+.spark{display:flex; align-items:center; gap:12px}
+.spark svg{width:90px; height:28px; flex:none}
+.spark .sinfo .sl{font-family:var(--font-body); font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint)}
+.spark .sinfo .sv{font-family:var(--font-body); font-size:11px; color:var(--ink-mut); margin-top:2px}
+
+/* quote surface table */
+.qt td .v{font-family:var(--font-display); font-size:16px; float:right}
+
+/* actions */
+.actions{display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin:18px 0}
+.btn{font-family:var(--font-body); font-size:10.5px; background:var(--panel); color:var(--ink); border:1px solid var(--grid-line-strong); border-radius:6px; padding:11px 4px; cursor:pointer; transition:border-color .2s, color .2s, background .2s; text-align:center}
+.btn:hover, .btn:focus-visible{border-color:var(--accent); color:var(--accent); background:var(--accent-dim); outline:none}
+.btn.primary{border-color:var(--accent); color:var(--accent); background:var(--accent-dim)}
+
+.compliance{font-family:var(--font-ui); font-size:10px; color:var(--ink-faint); line-height:1.6; padding-top:14px; border-top:1px solid var(--grid-line-strong); margin-top:6px}
+.compliance strong{color:var(--ink-mut); font-weight:500}
+.compliance .em{color:var(--ink-mut)}
+
+.fixture{display:block; width:max-content; max-width:92%; margin:22px auto 0; font-family:var(--font-body); font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); background:rgba(13,17,21,.9); border:1px solid var(--grid-line); padding:7px 13px; border-radius:99px; text-align:center}
+
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="rail">
+    <div class="left">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.4"/><rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="1.4"/><rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="1.4" opacity=".4"/></svg>
+      <span class="wm">Silverline</span>
+    </div>
+    <div class="right">ECD-02 Study<br>The Signal Room</div>
+  </header>
+
+  <div class="strip" aria-label="Signal Integrity">
+    <div class="cell"><div class="k">Signal Integrity</div><div class="v amber">Reference delayed</div></div>
+    <div class="cell"><div class="k">Reference Feed</div><div class="v">Coinbase proxy</div></div>
+    <div class="cell"><div class="k">Data Freshness</div><div class="v amber">11 sec</div></div>
+  </div>
+
+  <section class="core" aria-label="Field State">
+    <div class="coord"><span>Field State</span><span class="live">Watch</span></div>
+    <div class="state"><span class="ind" aria-hidden="true"></span>Watch</div>
+    <p class="companion">Some conditions align. Evidence and price still require manual review.</p>
+    <p class="qual">Historical alignment can change with price, freshness, and market regime.</p>
+  </section>
+
+  <div class="tbl-wrap">
+    <div class="th"><span>Window</span><span class="st">15-min interval</span></div>
+    <table>
+      <tr><td><span class="k">Window</span></td><td><span class="v">09:45–10:00 ET</span></td></tr>
+      <tr><td><span class="k">Time remaining</span></td><td><span class="v" style="color:var(--accent)">08:42</span></td></tr>
+    </table>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="th"><span>Evidence</span><span class="st">Historical · through 2026-08-30</span></div>
+    <table>
+      <tr class="dir-row">
+        <td>
+          <div class="dir-cell" role="status" aria-label="Historical direction: Up">
+            <span class="g" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M2 8 L6 4 L10 8"/></svg></span>
+            <span class="tx">Favors Up</span>
+          </div>
+        </td>
+        <td><span class="v">54.8<span class="u">%</span></span></td>
+      </tr>
+      <tr><td><span class="k">Observed historical rate</span></td><td><span class="v">54.8<span class="u">%</span></span></td></tr>
+      <tr><td><span class="k">Evidence Range (95% CI)</span></td><td><span class="v" style="font-size:12px">49.2–60.3%</span></td></tr>
+      <tr><td><span class="k">Observation Count</span></td><td><span class="v" style="font-size:12px">n = 438</span></td></tr>
+    </table>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="th"><span>Quote Surface</span><span class="st">Kalshi reference</span></div>
+    <table class="qt">
+      <tr><td><span class="k">Yes</span></td><td><span class="v">54¢</span></td></tr>
+      <tr><td><span class="k">No</span></td><td><span class="v" style="color:var(--ink-mut)">46¢</span></td></tr>
+      <tr><td><span class="k">Updated</span></td><td><span class="v" style="font-size:11px; color:var(--amber)">11 sec ago</span></td></tr>
+    </table>
+    <div style="padding:9px 14px; border-top:1px solid var(--grid-line); font-family:var(--font-ui); font-size:11px; color:var(--ink-mut); line-height:1.5">Reference only. Manual decision required.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="th"><span>Price-Adjusted Edge</span><span class="st">At displayed price</span></div>
+    <table>
+      <tr><td><span class="k">Expected-value context</span></td><td><span class="v" style="color:var(--up)">+2.8<span class="u">¢ EV</span></span></td></tr>
+      <tr><td><span class="k">Break-even price</span></td><td><span class="v" style="font-size:12px">52.0¢</span></td></tr>
+    </table>
+    <div class="spark-row"><td>
+      <div class="spark" aria-label="Historical trace, replay only">
+        <svg viewBox="0 0 90 28" aria-hidden="true"><polyline fill="none" stroke="var(--accent)" stroke-width="1.5" points="0,20 10,18 18,22 28,14 36,17 46,9 56,12 66,7 76,11 90,6"/></svg>
+        <div class="sinfo"><div class="sl">Trace</div><div class="sv">Replay · historical movement</div></div>
+      </div>
+    </td></tr>
+  </div>
+
+  <nav class="actions" aria-label="Inspect actions">
+    <button class="btn primary">Inspect entry</button>
+    <button class="btn">Review evidence</button>
+    <button class="btn">Compare price</button>
+    <button class="btn">View methodology</button>
+    <button class="btn">Check source</button>
+    <button class="btn">Review replay</button>
+  </nav>
+
+  <footer class="compliance">
+    <strong>Silverline</strong> is a historical backtest and probability-context tool, not financial advice. At a 15-minute scale, BTC is close to a random walk; slot effects can be weak, regime-dependent, and statistically fragile. <span class="em">Coinbase BTC-USD spot proxy — not prediction-market settlement data.</span> Past performance does not predict future results.
+  </footer>
+</main>
+<div class="fixture">Fixture · Replay · Historical · Not live</div>
+</body>
+</html>

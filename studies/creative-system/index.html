@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Silverline Creative System Studies</title>
+<style>
+:root{
+  --bg:#0a0e12; --surface:#111820; --ink:#e8eef4; --muted:#7a8794;
+  --line:rgba(232,238,244,.12); --accent:#7fd6e0;
+  --font-display:'Instrument Serif', Georgia, serif;
+  --font-body:ui-monospace,'Berkeley Mono','JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem}
+main{max-width:560px;width:100%}
+header{margin-bottom:2.5rem}
+.kicker{font-size:.7rem;letter-spacing:.3em;color:var(--accent);text-transform:uppercase;margin-bottom:.6rem}
+h1{font-family:var(--font-display);font-size:2.4rem;line-height:1.05;font-weight:400}
+nav{display:flex;flex-direction:column;gap:.9rem}
+a.study{display:block;padding:1.4rem 1.5rem;border:1px solid var(--line);border-radius:.7rem;text-decoration:none;color:var(--ink);background:var(--surface);transition:border-color .2s}
+a.study:hover,a.study:focus-visible{border-color:var(--accent);outline:none}
+a.study .name{font-family:var(--font-display);font-size:1.5rem;display:block;margin-bottom:.3rem}
+a.study .desc{font-size:.78rem;color:var(--muted);line-height:1.5}
+footer{margin-top:2.5rem;font-size:.68rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">Silverline · ECD-01 / 02 / 05</div>
+    <h1>Creative System Studies</h1>
+  </header>
+  <nav>
+    <a class="study" href="observatory/index.html">
+      <span class="name">The Observatory</span>
+      <span class="desc">Calibrated, astronomical, deep-field dark. Instrument grammar.</span>
+    </a>
+    <a class="study" href="mint/index.html">
+      <span class="name">The Mint</span>
+      <span class="desc">Cold patinated metal. Provenance over prediction.</span>
+    </a>
+    <a class="study" href="signal-room/index.html">
+      <span class="name">The Signal Room</span>
+      <span class="desc">Structured grid, tabular, high density. Operational.</span>
+    </a>
+  </nav>
+  <footer>FIXTURE · REPLAY · HISTORICAL context. Not live. Not a prediction. Not a recommendation.</footer>
+</main>
+</body>
+</html>
