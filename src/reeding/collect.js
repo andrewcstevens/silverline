@@ -17,7 +17,7 @@
  */
 "use strict";
 
-const crypto = require("node:crypto");
+import crypto from "node:crypto";
 
 const DRY_RUN = (process.env.DRY_RUN ?? "true").toLowerCase() !== "false";
 const HAS_TOKEN = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
@@ -66,7 +66,7 @@ async function persistAssay(assay) {
   let adapter = null;
   try {
     // Prefer a compiled JS build if one exists (added on enable).
-    const mod = require("./storage/vercel-blob-adapter.js");
+    const mod = await import("./storage/vercel-blob-adapter.js");
     const Adapter = mod.VercelBlobAdapter || mod.default?.VercelBlobAdapter;
     if (Adapter) adapter = new Adapter();
   } catch (_err) {
