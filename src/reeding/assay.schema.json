@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://silverline.local/reeding/assay.schema.json",
+  "title": "Reeding Assay",
+  "description": "Immutable 15-minute forecast-to-outcome evidence record for the Reeding Edge engine (PRE). An Assay is FROZEN before settlement; settlement is APPENDED, never used to overwrite a frozen forecast field. Census is separate from Andrew's personal bet ledger.",
+  "type": "object",
+  "required": [
+    "assay_id",
+    "engine_version",
+    "forecast_time",
+    "interval_ticker",
+    "occurrence_time",
+    "verdict",
+    "confidence",
+    "rationale",
+    "market_context_snapshot",
+    "status",
+    "created_at",
+    "schema_version"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "assay_id": {
+      "type": "string",
+      "description": "Immutable, deterministic identifier: SHA-256 hex of (engine_version + forecast_time + interval_ticker). Once assigned it MUST NOT change and MUST NOT collide between two distinct forecasts of the same interval by the same engine version.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "engine_version": {
+      "type": "string",
+      "description": "Version tag of the PRE engine that produced this forecast, e.g. 'pre-0.1'. Drives grade scoping — grades are version-specific, never pooled across versions.",
+      "examples": ["pre-0.1", "pre-0.2"]
+    },
+    "forecast_time": {
+      "type": "string",
+      "description": "ISO8601 timestamp (UTC, with timezone offset) marking when the forecast was FROZEN. MUST be strictly before occurrence_time and before any settlement.",
+      "format": "date-time"
+    },
+    "interval_ticker": {
+      "type": "string",
+      "description": "Kalshi market ticker identifying the 15-minute contract this Assay forecasts, e.g. 'KXBTC15M-26SEP022115'.",
+      "pattern": "^[A-Z0-9]+-[A-Z0-9]+$"
+    },
+    "occurrence_time": {
+      "type": "string",
+      "description": "ISO8601 timestamp (UTC) of the 15-minute slot this Assay forecasts. The slot being predicted — distinct from forecast_time (when the prediction was made).",
+      "format": "date-time"
+    },
+    "verdict": {
+      "type": "string",
+      "description": "Forecast direction. BUY_UP / BUY_DOWN are directional edges; SPECULATIVE is a directional lean below the action threshold; WAIT is no edge / hold.",
+      "enum": ["BUY_UP", "BUY_DOWN", "SPECULATIVE", "WAIT"]
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Model confidence in its own verdict, 0..1 inclusive. Not a calibrated probability — see Grade.",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Short, plain-language reason for the verdict. No hype, no guarantees.",
+      "maxLength": 280
+    },
+    "market_context_snapshot": {
+      "type": "object",
+      "description": "Frozen snapshot of market context at forecast_time. Immutable once the Assay is FROZEN.",
+      "required": [
+        "target_price",
+        "last_price_at_forecast",
+        "cost_assumption_cents"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "target_price": {
+          "type": "number",
+          "description": "Price threshold the 'up' outcome resolves against for this interval (USD).",
+          "minimum": 0
+        },
+        "last_price_at_forecast": {
+          "type": "number",
+          "description": "Spot BTC-USD last price at forecast_time (USD).",
+          "minimum": 0
+        },
+        "cost_assumption_cents": {
+          "type": "number",
+          "description": "Assumed contract cost in cents used for EV preview at forecast time. Not a fill — no execution.",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "description": "Lifecycle state. FROZEN = forecast locked, awaiting outcome. SETTLED = outcome appended. VOID = administratively invalidated (no outcome attached).",
+      "enum": ["FROZEN", "SETTLED", "VOID"]
+    },
+    "settlement": {
+      "type": ["object", "null"],
+      "description": "APPEND-ONLY. Null until the interval resolves. Once attached it MUST NOT be mutated or removed — a re-grade reads a new record, it never edits this one.",
+      "default": null,
+      "required": ["outcome", "settlement_price", "settled_at", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "description": "Observed market direction for the interval.",
+          "enum": ["up", "down"]
+        },
+        "settlement_price": {
+          "type": "number",
+          "description": "Reference settlement price (USD) used to derive the outcome.",
+          "minimum": 0
+        },
+        "settled_at": {
+          "type": "string",
+          "description": "ISO8601 timestamp (UTC) when the settlement was recorded. MUST be after forecast_time.",
+          "format": "date-time"
+        },
+        "source": {
+          "type": "string",
+          "description": "Origin of the settlement observation.",
+          "enum": ["kalshi-public", "coinbase-spot-proxy"]
+        }
+      }
+    },
+    "grade": {
+      "type": ["string", "null"],
+      "description": "Computed reliability assessment for this Assay's engine_version at the time of grading. UNGRADED / PROVISIONAL / CALIBRATED. Null until first computed; recomputed by appending a fresh grade record, never by editing.",
+      "enum": ["UNGRADED", "PROVISIONAL", "CALIBRATED", null],
+      "default": null
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 timestamp (UTC) when the Assay record was first persisted (FROZEN).",
+      "format": "date-time"
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Version of the Assay schema this record conforms to.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    }
+  }
+}
