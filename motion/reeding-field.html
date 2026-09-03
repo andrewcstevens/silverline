@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Silverline · Reeding Field — Motion Study 01</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&display=swap" rel="stylesheet" />
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@300,400,500,600,700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#05080b; --panel:#0d1218; --panel2:#141a22; --line:#1f2832;
+    --txt:#e8eaee; --mut:#8a93a0; --mut2:#525d6b;
+    --silver:#d4d8de; --silver-dim:#737b86;
+    --jade:#4E9B7E; --oxblood:#A85A4A; --amber:#c98a2b;
+    --mono:"General Sans","Inter",sans-serif; --sans:"General Sans","Inter",sans-serif;
+    --display:"Fraunces","Georgia",serif;
+    --ease:cubic-bezier(0.22,1,0.36,1);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;overflow-x:hidden;min-height:100vh}
+  .ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .reed{position:absolute;inset:-10%;width:120%;height:120%;background:repeating-linear-gradient(90deg,transparent 0,transparent 42px,rgba(212,216,222,.018) 42px,rgba(212,216,222,.018) 43px,transparent 43px,transparent 84px);animation:reed-drift 64s linear infinite;will-change:background-position}
+  @keyframes reed-drift{from{background-position:0 0}to{background-position:840px 0}}
+  .glow{position:absolute;inset:0;background:radial-gradient(120% 80% at 80% -10%,rgba(78,155,126,.06),transparent 60%),radial-gradient(90% 70% at 6% 112%,rgba(168,90,74,.04),transparent 60%);animation:glow-breathe 18s ease-in-out infinite}
+  @keyframes glow-breathe{0%,100%{opacity:.7}50%{opacity:1}}
+  .wrap{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:18px 16px 30px}
+  .topbar{display:flex;align-items:center;gap:12px;padding:6px 0 14px;border-bottom:1px solid var(--line);margin-bottom:16px}
+  .mark{height:24px;width:24px;border-radius:6px;background:conic-gradient(from 220deg,var(--silver),#7d8590,var(--silver));box-shadow:0 0 0 1px rgba(212,216,222,.2),0 0 18px rgba(212,216,222,.14)}
+  .wordmark{font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:.3px;line-height:1}
+  .sub{font-size:10px;color:var(--mut2);font-family:var(--mono);letter-spacing:.6px;text-transform:uppercase;margin-top:3px}
+  .pill{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+  .price{font-family:var(--display);font-size:22px;font-weight:600;letter-spacing:.3px}
+  .price .cur{color:var(--mut2);font-size:13px;margin-right:2px}
+  .clock{font-family:var(--mono);font-size:11px;color:var(--mut)}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);padding:3px 8px;border-radius:6px;letter-spacing:.4px}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .replay-banner{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;color:var(--amber);background:rgba(201,138,43,.08);border:1px solid rgba(201,138,43,.28);padding:7px 11px;border-radius:8px;margin-bottom:14px;letter-spacing:.4px}
+  .replay-banner b{color:var(--amber);font-weight:600}
+  .field-wrap{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#0b1118,#05080b 80%);margin-bottom:14px;box-shadow:inset 0 0 0 1px rgba(212,216,222,.04)}
+  canvas#field{display:block;width:100%;height:340px}
+  .field-overlay{position:absolute;inset:0;pointer-events:none}
+  .state-tag{position:absolute;top:12px;left:13px;font-family:var(--mono);font-size:10px;color:var(--mut2);letter-spacing:.8px;text-transform:uppercase}
+  .countdown{position:absolute;top:11px;right:14px;font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:.5px;text-align:right}
+  .countdown .lbl{font-family:var(--mono);font-size:9px;color:var(--mut2);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:-2px}
+  .pre{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 16px;margin-bottom:12px;position:relative;overflow:hidden}
+  .pre::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 60% at 50% -20%,rgba(255,255,255,.025),transparent 70%)}
+  .pre .label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut2);font-weight:600}
+  .pre .verdict{font-family:var(--display);font-size:30px;font-weight:600;letter-spacing:.4px;margin-top:4px;transition:color .35s var(--ease)}
+  .pre .verdict.gold{color:var(--silver);text-shadow:0 0 26px rgba(212,216,222,.3)}
+  .pre .verdict.watch{color:var(--silver)}
+  .pre .verdict.read{color:var(--mut)}
+  .pre .verdict.none{color:var(--mut2)}
+  .pre .side{font-family:var(--mono);font-size:12px;margin-top:2px;letter-spacing:.3px}
+  .ev-row{display:flex;gap:18px;margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);flex-wrap:wrap}
+  .ev{display:flex;flex-direction:column;gap:1px}
+  .ev .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut2)}
+  .ev .v{font-family:var(--mono);font-size:13px;color:var(--txt)}
+  .controls{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  .btn{font-family:var(--mono);font-size:11px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);padding:8px 12px;border-radius:8px;cursor:pointer;letter-spacing:.3px;transition:all .2s var(--ease);min-height:38px;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{color:var(--txt);border-color:var(--silver-dim)}
+  .btn.active{color:var(--bg);background:var(--silver);border-color:var(--silver)}
+  .seg{display:flex;gap:2px}
+  .seg-btn{font-family:var(--mono);font-size:10px;padding:5px 8px;border-radius:5px;border:1px solid transparent;background:transparent;color:var(--mut);cursor:pointer;letter-spacing:.3px}
+  .seg-btn.active{color:var(--silver);border-color:var(--silver-dim);background:rgba(212,216,222,.06)}
+  .toggle{margin-left:auto}
+  .mapping{font-family:var(--mono);font-size:10.5px;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:12px;line-height:1.7}
+  .mapping b{color:var(--silver-dim);font-weight:600}
+  .mapping .row{display:flex;justify-content:space-between;gap:10px}
+  .mapping .row span:last-child{color:var(--txt)}
+  .compliance{margin-top:14px;font-size:11.5px;color:var(--mut2);line-height:1.6;border-top:1px solid var(--line);padding-top:13px}
+  .compliance b{color:var(--mut)}
+  .foot{margin-top:18px;font-size:10px;color:var(--mut2);font-family:var(--mono);letter-spacing:.4px;display:flex;justify-content:space-between}
+  @media(prefers-reduced-motion:reduce){.reed,.glow{animation:none!important}.reed{background-position:0 0}}
+</style>
+</head>
+<body>
+<div class="ambient"><div class="reed"></div><div class="glow"></div></div>
+<div class="wrap">
+  <div class="topbar">
+    <div class="mark" aria-hidden="true"></div>
+    <div><div class="wordmark">Silverline</div><div class="sub">PRE · Reeding Field</div></div>
+    <div class="pill">
+      <div class="price"><span class="cur">$</span><span id="px">77,400</span></div>
+      <div class="clock"><span class="badge"><span class="dot"></span>REPLAY · HISTORICAL</span> <span id="clk">--:--</span></div>
+    </div>
+  </div>
+  <div class="replay-banner"><b>REPLAY / HISTORICAL DATA</b> · BTC-USD 1-min candles (Coinbase) · Market time <span id="mkt">--:--:--</span> ET · Playback 8× · Not live</div>
+  <div class="field-wrap">
+    <canvas id="field" aria-label="Reeding Field: data-driven silver traces representing replayed BTC price, volatility, and settlement proximity"></canvas>
+    <div class="field-overlay">
+      <div class="state-tag" id="ftag">FIELD · LIVE</div>
+      <div class="countdown"><span class="lbl">closes in</span><span id="cd">15:00</span></div>
+    </div>
+  </div>
+  <div class="pre">
+    <div class="label">PRE Field State</div>
+    <div class="verdict gold" id="verdict">GOLDEN WINDOW</div>
+    <div class="side" id="side" style="color:var(--jade)">Historical evidence favors UP / YES</div>
+    <div class="ev-row">
+      <div class="ev"><span class="k">Historical tilt</span><span class="v" id="tilt">57.8%</span></div>
+      <div class="ev"><span class="k">Evidence range (95% CI)</span><span class="v" id="ci">50.1–66.2%</span></div>
+      <div class="ev"><span class="k">Observation count</span><span class="v" id="n">n = 143</span></div>
+      <div class="ev"><span class="k">Model through</span><span class="v">2026-08-30</span></div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn" id="replayBtn">↻ Replay interval</button>
+    <div class="btn" style="cursor:default"><span class="seg">
+      <button class="seg-btn active" data-mode="live">Live Field</button>
+      <button class="seg-btn" data-mode="focus">Focus</button>
+      <button class="seg-btn" data-mode="still">Still</button>
+    </span></div>
+    <button class="btn toggle" id="reduceBtn">Reduce Motion: off</button>
+  </div>
+  <div class="mapping">
+    <b>DATA → MOTION MAPPING</b>
+    <div class="row"><span>Active silver trace</span><span>normalized replayed price</span></div>
+    <div class="row"><span>Companion ridges</span><span>depth-graded lagged series</span></div>
+    <div class="row"><span>Field density</span><span>rolling volatility</span></div>
+    <div class="row"><span>Trace glow · leading head</span><span>return over lookback</span></div>
+    <div class="row"><span>Horizontal compression</span><span>elapsed % of 15-min window</span></div>
+    <div class="row"><span>Coherence channel</span><span>PRE evidence state</span></div>
+    <div class="row"><span>Settlement pulse</span><span>known recorded outcome</span></div>
+  </div>
+  <div class="compliance"><b>Historical probability study — not financial advice.</b> Short-interval BTC outcomes are noisy and close to a coin flip; an observed edge may disappear and most time-of-day effects are not statistically significant once sample size and multiple comparisons are accounted for. Past performance does not predict future results. This is a replay of historical data, not a live market feed or a recommendation to trade.</div>
+  <div class="foot"><span>Motion Study 01 · fixture replay</span><span>build 2026-09-02</span></div>
+</div>
+<script>
+const CANDLES = [[1788398940, 77400.69], [1788399000, 77396.05], [1788399060, 77431.91], [1788399120, 77483.99], [1788399180, 77473.38], [1788399240, 77491.98], [1788399300, 77403.18], [1788399360, 77282.22], [1788399420, 77342.05], [1788399480, 77419.34], [1788399540, 77422.27], [1788399600, 77411.85], [1788399660, 77366.26], [1788399720, 77425.42], [1788399780, 77348.35], [1788399840, 77307.37], [1788399900, 77322.86], [1788399960, 77299.73], [1788400020, 77291.07], [1788400080, 77312.24], [1788400140, 77294.3], [1788400200, 77256.68], [1788400260, 77312.52], [1788400320, 77302.14], [1788400380, 77390.55], [1788400440, 77359.44], [1788400500, 77396.16], [1788400560, 77373.28], [1788400620, 77367.96], [1788400680, 77351.01], [1788400740, 77321.27], [1788400800, 77327.41], [1788400860, 77286.58], [1788400920, 77271.76], [1788400980, 77272.0], [1788401040, 77258.98], [1788401100, 77269.53], [1788401160, 77302.81], [1788401220, 77253.29], [1788401280, 77211.63], [1788401340, 77243.99], [1788401400, 77311.14], [1788401460, 77324.98], [1788401520, 77337.18], [1788401580, 77446.59], [1788401640, 77459.94], [1788401700, 77418.91], [1788401760, 77428.13], [1788401820, 77420.75], [1788401880, 77458.88], [1788401940, 77400.34], [1788402000, 77433.11], [1788402060, 77441.74], [1788402120, 77471.38], [1788402180, 77471.49], [1788402240, 77489.88], [1788402300, 77483.99], [1788402360, 77456.93], [1788402420, 77469.65], [1788402480, 77564.58], [1788402540, 77569.75], [1788402600, 77634.13], [1788402660, 77658.0], [1788402720, 77620.54], [1788402780, 77713.76], [1788402840, 77849.62], [1788402900, 77821.39], [1788402960, 77750.99], [1788403020, 77716.88], [1788403080, 77697.12], [1788403140, 77715.74], [1788403200, 77783.27], [1788403260, 77784.51], [1788403320, 77803.57], [1788403380, 77763.12], [1788403440, 77754.65], [1788403500, 77740.0], [1788403560, 77734.01], [1788403620, 77771.04], [1788403680, 77799.98], [1788403740, 77807.08], [1788403800, 77817.77], [1788403860, 77833.05], [1788403920, 77824.5], [1788403980, 77801.8], [1788404040, 77829.24], [1788404100, 77829.3], [1788404160, 77781.15], [1788404220, 77771.61], [1788404280, 77775.39]];
+const FIRST_TS = 1788398940, LAST_TS = 1788404280;
+const WIN = 15, PLAYBACK_MS = 7500, INTERVAL_BREAK = 1500;
+const windows=[]; for(let i=0;i<=CANDLES.length-WIN;i+=WIN){const w=CANDLES.slice(i,i+WIN);windows.push({open:w[0][1],close:w[w.length-1][1],ts0:w[0][0],pts:w.map(p=>p[1])});}
+const SNAP=[
+  {state:'GOLDEN WINDOW',cls:'gold',side:'yes',txt:'Historical evidence favors UP / YES',tilt:'57.8%',ci:'50.1–66.2%',n:'n = 143'},
+  {state:'WATCH',cls:'watch',side:'yes',txt:'Historical evidence favors UP / YES',tilt:'54.8%',ci:'49.2–60.3%',n:'n = 438'},
+  {state:'NO ACTION',cls:'none',side:'',txt:'Pattern not distinct from noise',tilt:'51.0%',ci:'46.4–55.6%',n:'n = 612'},
+  {state:'READING',cls:'read',side:'no',txt:'Insufficient sample — observe',tilt:'48.9%',ci:'42.0–55.7%',n:'n = 96'},
+];
+const COH={'GOLDEN WINDOW':{scatter:0.16,channel:0.95,glow:1.0},'WATCH':{scatter:0.4,channel:0.5,glow:0.7},'READING':{scatter:0.7,channel:0.2,glow:0.45},'NO ACTION':{scatter:1.0,channel:0.0,glow:0.3}};
+let mode='live', reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let running=true;
+let winIdx=0, elapsed=0, lastT=0, settling=false, settleT=0;
+let interpPrice=0, targetPrice=0, coh={...COH['GOLDEN WINDOW']}, cohTarget={...coh};
+let snapIdx=0;
+// active trace history for light-trail glow
+let headTrail=[];
+
+const cv=document.getElementById('field'), ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){DPR=Math.min(window.devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);}
+window.addEventListener('resize',resize); new ResizeObserver(resize).observe(cv);
+function damp(c,t,dt,rate){const k=Math.max(0,1-Math.exp(-rate*dt));return c+(t-c)*k;}
+function priceY(p,win,padFrac){const mn=Math.min(...win.pts),mx=Math.max(...win.pts);const pad=(mx-mn)*padFrac||1;const lo=mn-pad,hi=mx+pad;const t=(p-lo)/(hi-lo);return H*(0.12+t*0.76);}
+function setSnap(i){snapIdx=i%SNAP.length;const s=SNAP[snapIdx];const v=document.getElementById('verdict');v.textContent=s.state;v.className='verdict '+s.cls;const sd=document.getElementById('side');sd.textContent=s.txt;sd.style.color=s.side==='yes'?'var(--jade)':s.side==='no'?'var(--oxblood)':'var(--mut2)';document.getElementById('tilt').textContent=s.tilt;document.getElementById('ci').textContent=s.ci;document.getElementById('n').textContent=s.n;cohTarget={...COH[s.state]};}
+function fmtTime(ts){const d=new Date(ts*1000);return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});}
+function fmtClk(ms){const s=Math.max(0,Math.ceil(ms/1000));const m=Math.floor(s/60),ss=s%60;return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');}
+
+// smooth quadratic-curve path through points
+function pathThrough(pts, xOf, yOf){ctx.beginPath();if(pts.length<2)return;ctx.moveTo(xOf(0,pts[0]),yOf(pts[0],0));for(let i=0;i<pts.length-1;i++){const xc=(xOf(i,pts[i])+xOf(i+1,pts[i+1]))/2,yc=(yOf(pts[i],i)+yOf(pts[i+1],i+1))/2;ctx.quadraticCurveTo(xOf(i,pts[i]),yOf(pts[i],i),xc,yc);}const n=pts.length-1;ctx.lineTo(xOf(n,pts[n]),yOf(pts[n],n));}
+
+// companion ridges: depth-graded lagged transforms -> ~40 fine trajectories
+const RIDGE_DEFS=[];
+for(let i=0;i<42;i++){RIDGE_DEFS.push({lag:1+(i%14), depth:Math.floor(i/14), phase:i*0.7, amp:0.5+(i%5)*0.18});}
+
+function drawField(win,prog){
+  const mn=Math.min(...win.pts),mx=Math.max(...win.pts),range=(mx-mn)||1;
+  const strikeY=priceY(win.open,win,0.7);
+  const xStart=0, xSpan=W;
+  const drawnProg=prog;
+  const scatter=coh.scatter;
+  // depth mist top/bottom
+  const mist=ctx.createLinearGradient(0,0,0,H);
+  mist.addColorStop(0,'rgba(5,8,11,0.55)');mist.addColorStop(0.5,'rgba(5,8,11,0)');mist.addColorStop(1,'rgba(5,8,11,0.55)');
+  // settlement plane mist
+  const sm=ctx.createLinearGradient(0,strikeY-40,0,strikeY+40);
+  sm.addColorStop(0,'transparent');sm.addColorStop(0.5,'rgba(201,138,43,0.05)');sm.addColorStop(1,'transparent');
+
+  // far background: prior resolved windows folded in (faint)
+  for(let p=1;p<=Math.min(winIdx,5);p++){
+    const pw=windows[winIdx-p];
+    const a=0.04+0.005*p;
+    ctx.save();ctx.globalAlpha=1;
+    ctx.strokeStyle='rgba(180,186,194,'+a+')';ctx.lineWidth=0.7;
+    const pts=pw.pts;
+    pathThrough(pts,(i,_)=>xStart+(i/(pts.length-1))*xSpan,(pp,i)=>priceY(pp,pw,0.7));ctx.stroke();
+    ctx.restore();
+  }
+
+  // companion ridges (depth-graded). farther = dimmer/thinner, more parallax
+  for(const r of RIDGE_DEFS){
+    const depthA=[0.13,0.08,0.05][r.depth]||0.04;
+    const a=depthA*coh.glow*(0.6+0.4*Math.cos(r.phase));
+    if(a<0.012)continue;
+    const lag=r.lag;
+    const series=[];
+    for(let j=0;j<WIN;j++){const src=win.pts[Math.max(0,j-lag)];series.push(src);}
+    const ampPx=range*0.5*scatter*r.amp;
+    ctx.save();
+    ctx.strokeStyle='rgba(202,208,216,'+a+')';ctx.lineWidth=[0.9,0.8,0.7][r.depth]||0.6;
+    ctx.lineJoin='round';ctx.lineCap='round';
+    pathThrough(series,(i,_)=>xStart+(i/(series.length-1))*xSpan,(pp,i)=>priceY(pp,win,0.7)+Math.sin(r.phase+i*0.6)*ampPx);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // settlement plane line + mist
+  ctx.save();ctx.fillStyle=sm;ctx.fillRect(0,strikeY-40,W,80);
+  ctx.strokeStyle='rgba(201,138,43,'+(0.3+(prog>0.85?0.25:0))+')';ctx.setLineDash([3,5]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,strikeY);ctx.lineTo(W,strikeY);ctx.stroke();ctx.restore();
+
+  // coherence luminous channel around active path
+  if(coh.channel>0.04){
+    const cy=priceY(interpPrice,win,0.7);
+    const bw=8+coh.channel*30;
+    const cg=ctx.createLinearGradient(0,cy-bw,0,cy+bw);
+    cg.addColorStop(0,'transparent');cg.addColorStop(0.5,'rgba(222,228,236,'+(0.07*coh.channel)+')');cg.addColorStop(1,'transparent');
+    ctx.fillStyle=cg;ctx.fillRect(W*(1-prog)*0, cy-bw, W, bw*2);
+  }
+}
+
+function drawActive(win,prog){
+  const fIdx=prog*(WIN-1);const i0=Math.floor(fIdx),i1=Math.min(WIN-1,i0+1),frac=fIdx-i0;
+  const series=[win.pts[0]];
+  for(let j=1;j<=i0;j++)series.push(win.pts[j]);
+  series.push(interpPrice);
+  const xStart=0,xSpan=W;
+  // long-exposure glow: 3-pass halo
+  const passes=[{w:9,a:0.10,blur:22},{w:4.5,a:0.22,blur:10}];
+  for(const p of passes){
+    ctx.save();ctx.shadowBlur=p.blur;ctx.shadowColor='rgba(228,232,238,'+Math.min(1,0.5+coh.channel*0.5)+')';
+    ctx.strokeStyle='rgba(228,232,238,'+p.a+')';ctx.lineWidth=p.w;ctx.lineJoin='round';ctx.lineCap='round';
+    pathThrough(series,(i,_)=>xStart+(i/(WIN-1))*xSpan*Math.min(1,prog+0.02),(pp,i)=>priceY(pp,win,0.7));ctx.stroke();ctx.restore();
+  }
+  // crisp core
+  ctx.save();ctx.strokeStyle='rgba(240,243,247,0.98)';ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';
+  pathThrough(series,(i,_)=>xStart+(i/(WIN-1))*xSpan*Math.min(1,prog+0.02),(pp,i)=>priceY(pp,win,0.7));ctx.stroke();ctx.restore();
+  // leading head — bright luminous point
+  const hx=xStart+(series.length-1)/(WIN-1)*xSpan*Math.min(1,prog+0.02);
+  const hy=priceY(interpPrice,win,0.7);
+  const hg=ctx.createRadialGradient(hx,hy,0,hx,hy,16);
+  hg.addColorStop(0,'rgba(240,243,247,'+(0.6+coh.channel*0.4)+')');hg.addColorStop(0.4,'rgba(212,216,222,0.25)');hg.addColorStop(1,'transparent');
+  ctx.fillStyle=hg;ctx.beginPath();ctx.arc(hx,hy,16,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(248,250,252,0.95)';ctx.beginPath();ctx.arc(hx,hy,2.4,0,Math.PI*2);ctx.fill();
+  // trail dots
+  headTrail.push({x:hx,y:hy,t:1});
+  for(let i=headTrail.length-1;i>=0;i--){headTrail[i].t-=0.025;if(headTrail[i].t<=0)headTrail.splice(i,1);}
+  for(const d of headTrail){ctx.fillStyle='rgba(220,226,234,'+(d.t*0.25)+')';ctx.beginPath();ctx.arc(d.x,d.y,2*d.t,0,Math.PI*2);ctx.fill();}
+  if(headTrail.length>40)headTrail=headTrail.slice(-40);
+}
+
+function drawSettlePulse(win){
+  const sP=Math.min(1,settleT/500);const up=win.close>=win.open;const col=up?'78,155,126':'168,90,74';
+  const cy=priceY(win.open,win,0.7);
+  const g=ctx.createRadialGradient(W*0.85,cy,0,W*0.85,cy,W*0.6);
+  g.addColorStop(0,'rgba('+col+','+(0.3*(1-sP*0.5))+')');g.addColorStop(1,'transparent');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // shutter line
+  ctx.save();ctx.strokeStyle='rgba('+col+','+(0.6*(1-sP))+')';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(W*0.85,0);ctx.lineTo(W*0.85,H);ctx.stroke();ctx.restore();
+}
+
+function draw(now){
+  if(!lastT)lastT=now;const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;
+  if(document.hidden){requestAnimationFrame(draw);return;}
+  if(running&&!settling){elapsed+=dt*1000;if(elapsed>=PLAYBACK_MS){elapsed=PLAYBACK_MS;triggerSettle();}}
+  if(settling){settleT+=dt*1000;if(settleT>=INTERVAL_BREAK)advanceWindow();}
+  const win=windows[winIdx];const prog=Math.min(1,elapsed/PLAYBACK_MS);
+  const fIdx=prog*(WIN-1);const i0=Math.floor(fIdx),i1=Math.min(WIN-1,i0+1),frac=fIdx-i0;
+  targetPrice=win.pts[i0]+(win.pts[i1]-win.pts[i0])*frac;
+  interpPrice=damp(interpPrice,targetPrice,dt,reduceMotion?60:13);
+  coh.scatter=damp(coh.scatter,cohTarget.scatter,dt,6);coh.channel=damp(coh.channel,cohTarget.channel,dt,5);coh.glow=damp(coh.glow,cohTarget.glow,dt,5);
+  ctx.clearRect(0,0,W,H);
+  drawField(win,prog);
+  if(settling)drawSettlePulse(win);
+  drawActive(win,prog);
+  // overlay numbers
+  document.getElementById('px').textContent=Math.round(interpPrice).toLocaleString('en-US');
+  document.getElementById('mkt').textContent=fmtTime(win.ts0);
+  document.getElementById('clk').textContent=fmtTime(win.ts0+Math.round(prog*WIN*60));
+  document.getElementById('cd').textContent=settling?'RESOLVING':fmtClk(PLAYBACK_MS-elapsed);
+  document.getElementById('ftag').textContent='FIELD · '+(mode==='still'||reduceMotion?'STILL':mode.toUpperCase());
+  requestAnimationFrame(draw);
+}
+function triggerSettle(){settling=true;settleT=0;headTrail=[];}
+function advanceWindow(){settling=false;settleT=0;elapsed=0;winIdx=(winIdx+1)%windows.length;setSnap(winIdx);interpPrice=windows[winIdx].pts[0];targetPrice=interpPrice;headTrail=[];}
+resize();setSnap(0);interpPrice=windows[0].pts[0];targetPrice=interpPrice;requestAnimationFrame(draw);
+document.getElementById('replayBtn').addEventListener('click',()=>{elapsed=0;settling=false;settleT=0;interpPrice=windows[winIdx].pts[0];headTrail=[];});
+document.querySelectorAll('.seg-btn').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;document.querySelectorAll('.seg-btn').forEach(x=>x.classList.toggle('active',x===b));}));
+const rb=document.getElementById('reduceBtn');if(reduceMotion){rb.textContent='Reduce Motion: on';rb.classList.add('active');}
+rb.addEventListener('click',()=>{reduceMotion=!reduceMotion;rb.textContent='Reduce Motion: '+(reduceMotion?'on':'off');rb.classList.toggle('active',reduceMotion);});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)lastT=0;});
+</script>
+</body>
+</html>
