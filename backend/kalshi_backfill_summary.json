@@ -1,0 +1,48 @@
+{
+  "series": "KXBTC15M",
+  "run_utc": "2026-08-30T02:17:08.803174+00:00",
+  "historical_cutoff": {
+    "market_positions_last_updated_ts": "2026-06-30T00:00:00Z",
+    "market_settled_ts": "2026-06-30T00:00:00Z",
+    "orders_updated_ts": "2026-06-30T00:00:00Z",
+    "trades_created_ts": "2026-06-30T00:00:00Z"
+  },
+  "total_settled_markets_collected": 24415,
+  "date_range": {
+    "earliest_close_time": "2025-12-10T22:00:00+00:00",
+    "latest_close_time": "2026-08-30T02:15:00+00:00",
+    "span_days": 262,
+    "span_years_approx": 0.72
+  },
+  "field_presence": {
+    "event_ticker": 24415,
+    "result": 24415,
+    "expiration_value": 21601,
+    "floor_strike": 24057,
+    "settlement_time": 0,
+    "close_time": 24415,
+    "open_time": 24415,
+    "occurrence_datetime": 12832,
+    "last_price_dollars": 24415,
+    "volume": 0,
+    "open_interest_fp": 24415,
+    "notional_value_dollars": 24415,
+    "market_type": 24415,
+    "yes_bid_dollars": 24415,
+    "yes_ask_dollars": 24415
+  },
+  "result_distribution": {
+    "yes": 12190,
+    "no": 12225
+  },
+  "resolved_yes_no": {
+    "yes": 12190,
+    "no": 12225,
+    "total_resolved": 24415
+  },
+  "base_rate_yes": 0.4993,
+  "base_rate_no": 0.5007,
+  "markets_with_expiration_value": 21601,
+  "markets_with_floor_strike": 24057,
+  "note": "expiration_value=final benchmark price; floor_strike=target strike; result=yes/no=Up/Down outcome"
+}
