@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Silverline V3 — The Field</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #06070a;
+    --bg-2: #0a0c11;
+    --surface: rgba(18,22,30,0.7);
+    --border: rgba(120,140,170,0.14);
+    --border-2: rgba(120,140,170,0.28);
+    --text: #e8edf4;
+    --text-muted: #97a1b1;
+    --text-faint: #5a6473;
+    --silver: #c7d0dd;
+    --steel: #7e8896;
+    --accent: #7fd1c2;
+    --accent-dim: rgba(127,209,194,0.16);
+    --up: #6ee7a8;
+    --down: #f0809a;
+    --spec: #e8b864;
+    --wait: #6f7a8a;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; background: var(--bg); }
+  body {
+    min-height: 100dvh; font-family: var(--font-display); color: var(--text);
+    background: var(--bg); overflow-x: hidden; line-height: 1.5;
+  }
+  /* ambient reeded field canvas */
+  #field { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.9; }
+  .grain { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+  main { position: relative; z-index: 2; }
+
+  /* ── Type tokens (≤8) ── */
+  .t-cap { font-family: var(--font-mono); font-size: clamp(0.7rem,0.6rem+0.5vw,0.8rem); letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+  .t-label { font-family: var(--font-mono); font-size: clamp(0.72rem,0.62rem+0.5vw,0.82rem); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); }
+  .t-body { font-size: clamp(1rem,0.92rem+0.4vw,1.12rem); color: var(--text-muted); }
+  .t-lede { font-size: clamp(1.15rem,1rem+0.8vw,1.5rem); color: var(--text-muted); line-height: 1.45; }
+  .t-h3 { font-size: clamp(1.4rem,1rem+1.6vw,2rem); font-weight: 600; letter-spacing: -0.01em; }
+  .t-h2 { font-size: clamp(2rem,1.2rem+3.2vw,3.4rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+  .t-hero { font-size: clamp(3rem,1rem+9vw,7.5rem); font-weight: 600; letter-spacing: -0.03em; line-height: 0.95; }
+  .t-mono-big { font-family: var(--font-mono); font-size: clamp(2.2rem,1.2rem+4vw,3.6rem); font-weight: 500; letter-spacing: -0.01em; }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 22px; }
+  .center { text-align: center; }
+
+  /* ── Fixed chrome ── */
+  .topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px; backdrop-filter: blur(14px); background: linear-gradient(180deg, rgba(6,7,10,0.7), rgba(6,7,10,0)); }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand svg { width: 22px; height: 22px; color: var(--silver); }
+  .brand b { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em; }
+  .brand span { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-faint); letter-spacing: 0.14em; text-transform: uppercase; }
+  .ticker { font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-muted); display: flex; gap: 14px; align-items: center; }
+  .ticker .up { color: var(--up); }
+  .ticker .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  /* ── Scroll progress (the reeded edge) ── */
+  .reed { position: fixed; left: 0; top: 0; bottom: 0; width: 3px; z-index: 60; background: rgba(120,140,170,0.08); }
+  .reed i { position: absolute; left: 0; top: 0; width: 100%; background: linear-gradient(180deg, var(--accent), var(--silver)); height: 0; box-shadow: 0 0 14px var(--accent); }
+
+  /* ── Beat sections ── */
+  section { position: relative; }
+  .pin-pad { min-height: 100vh; display: flex; align-items: center; }
+  .beat { padding: 18vh 0; }
+
+  /* Hero */
+  .hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column; gap: 28px; }
+  .hero .wordmark { position: relative; }
+  .hero .wordmark svg { display: block; max-width: 90vw; height: auto; }
+  .hero .price-resolve { font-family: var(--font-mono); font-size: clamp(1.6rem,1rem+3vw,2.6rem); font-weight: 500; letter-spacing: -0.01em; min-height: 1.2em; color: var(--silver); }
+  .hero .price-resolve .cur { color: var(--text-faint); }
+  .hero .price-resolve .resolved { color: var(--up); }
+  .scroll-cue { position: absolute; bottom: 5vh; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint); letter-spacing: 0.16em; text-transform: uppercase; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .scroll-cue .line { width: 1px; height: 44px; background: linear-gradient(180deg, transparent, var(--accent)); }
+
+  /* The Window */
+  .window-rail { position: relative; height: 2px; background: rgba(120,140,170,0.16); margin: 40px 0; }
+  .window-rail .track { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(90deg, var(--accent), var(--silver)); width: 0%; box-shadow: 0 0 12px var(--accent); }
+  .window-rail .target { position: absolute; top: -8px; width: 2px; height: 18px; background: var(--spec); }
+  .window-rail .now { position: absolute; top: -10px; width: 10px; height: 22px; border-radius: 2px; background: var(--accent); box-shadow: 0 0 14px var(--accent); transform: translateX(-50%); }
+  .window-rail .marks { position: absolute; top: 14px; left: 0; right: 0; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-faint); }
+  .countdown-big { font-family: var(--font-mono); font-weight: 500; font-size: clamp(3rem,1.5rem+7vw,5.5rem); letter-spacing: 0.02em; line-height: 1; }
+
+  /* Verdict */
+  .verdict-card { border: 1px solid var(--border-2); border-radius: 20px; padding: 30px; background: var(--surface); backdrop-filter: blur(8px); }
+  .verdict-word { font-size: clamp(2.4rem,1rem+6vw,4.5rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+  .verdict-word.spec { color: var(--spec); }
+  .confbar { height: 6px; border-radius: 999px; background: rgba(120,140,170,0.12); overflow: hidden; margin-top: 18px; }
+  .confbar i { display: block; height: 100%; width: 0%; background: var(--spec); box-shadow: 0 0 12px var(--spec); border-radius: 999px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 1px; background: var(--border); margin-top: 24px; border-radius: 14px; overflow: hidden; }
+  .stat-grid .cell { background: var(--bg-2); padding: 18px 20px; }
+  .stat-grid .cell .k { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); }
+  .stat-grid .cell .v { font-family: var(--font-mono); font-size: 1.15rem; color: var(--silver); margin-top: 6px; }
+
+  /* Assay freeze */
+  .assay-lock { display: flex; align-items: center; gap: 14px; }
+  .lock-chip { width: 52px; height: 52px; border-radius: 14px; border: 1px solid var(--border-2); display: flex; align-items: center; justify-content: center; background: var(--bg-2); }
+  .lock-chip svg { width: 22px; height: 22px; color: var(--steel); }
+  .assay-table { margin-top: 26px; }
+  .assay-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); }
+  .assay-row .k { font-size: 0.95rem; color: var(--text-muted); }
+  .assay-row .v { font-family: var(--font-mono); font-size: 0.95rem; color: var(--silver); }
+  .assay-row .v.accent { color: var(--accent); }
+  .freeze-badge { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--accent-dim); color: var(--accent); }
+  .settlement-append { margin-top: 30px; padding: 20px; border: 1px dashed var(--border-2); border-radius: 14px; opacity: 0; transform: translateY(8px); }
+  .settlement-append .t-label { color: var(--down); }
+
+  /* Census cascade */
+  .census-stream { margin-top: 26px; }
+  .assay-chip { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; background: var(--bg-2); opacity: 0; transform: translateY(14px); }
+  .assay-chip .d { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .assay-chip .d.up { background: var(--up); } .assay-chip .d.down { background: var(--down); } .assay-chip .d.spec { background: var(--spec); } .assay-chip .d.wait { background: var(--wait); }
+  .assay-chip .slot { font-family: var(--font-mono); font-size: 0.82rem; color: var(--silver); flex: 1; }
+  .assay-chip .res { font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-muted); }
+  .grade-row { display: flex; align-items: center; gap: 16px; margin-top: 30px; }
+  .grade-badge { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 14px; border-radius: 999px; }
+  .grade-badge.prov { color: var(--spec); background: rgba(232,184,100,0.08); border: 1px solid rgba(232,184,100,0.24); }
+
+  /* Method */
+  .know-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 26px; }
+  .know-card { border: 1px solid var(--border); border-radius: 14px; padding: 22px; background: var(--bg-2); }
+  .know-card h4 { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 14px; }
+  .know-card ul { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+  .know-card li { font-size: 0.92rem; color: var(--text-muted); display: flex; align-items: center; gap: 10px; }
+  .know-card li .mark { font-family: var(--font-mono); color: var(--accent); }
+
+  /* Ledger */
+  .ledger-card { border: 1px solid var(--border-2); border-radius: 18px; padding: 28px; background: var(--surface); backdrop-filter: blur(8px); }
+  .equity { display: flex; align-items: flex-end; gap: 4px; height: 90px; margin-top: 22px; }
+  .equity i { flex: 1; border-radius: 2px 2px 0 0; background: rgba(120,140,170,0.2); }
+  .equity i.g { background: var(--up); opacity: 0.85; } .equity i.r { background: var(--down); opacity: 0.85; }
+  .sep-callout { margin-top: 22px; font-size: 0.82rem; color: var(--text-faint); padding: 16px; border: 1px solid var(--accent-dim); border-radius: 12px; }
+  .sep-callout b { color: var(--accent); font-weight: 500; }
+
+  /* Close */
+  .close { padding: 22vh 0 14vh; text-align: center; }
+  .close .caveat { max-width: 60ch; margin: 0 auto; font-size: 0.84rem; color: var(--text-faint); line-height: 1.6; }
+  .close .caveat b { color: var(--text-muted); font-weight: 500; }
+  .close .sig { margin-top: 26px; font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-faint); letter-spacing: 0.12em; }
+
+  .sample { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
+
+  @media (max-width: 640px) {
+    .stat-grid { grid-template-columns: 1fr; }
+    .know-grid { grid-template-columns: 1fr; }
+    .topbar .ticker { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<canvas id="field"></canvas>
+<div class="grain"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="1.4" opacity="0.45"/><circle cx="20" cy="20" r="12" stroke="currentColor" stroke-width="1.4" opacity="0.75"/><line x1="20" y1="6" x2="20" y2="10" stroke="currentColor" stroke-width="1.4"/><line x1="20" y1="30" x2="20" y2="34" stroke="currentColor" stroke-width="1.4"/><line x1="6" y1="20" x2="10" y2="20" stroke="currentColor" stroke-width="1.4"/><line x1="30" y1="20" x2="34" y2="20" stroke="currentColor" stroke-width="1.4"/><circle cx="20" cy="20" r="3.4" fill="currentColor"/></svg>
+    <div><b>Silverline</b><br/><span>Reeding Field · V3</span></div>
+  </div>
+  <div class="ticker"><span class="dot"></span> BTC-USD <b class="up">$71,402.18</b> +0.12%</div>
+</header>
+
+<div class="reed"><i></i></div>
+
+<main>
+
+  <!-- 1 · HERO — FIELD WAKE -->
+  <section id="hero" class="hero">
+    <div class="t-cap">BTC 15-Min Edge Finder</div>
+    <div class="wordmark">
+      <svg viewBox="0 0 600 120" fill="none" aria-label="Silverline">
+        <text x="0" y="92" font-family="Space Grotesk" font-size="104" font-weight="600" letter-spacing="-4" fill="#e8edf4" id="wm">SILVERLINE</text>
+        <line x1="6" y1="104" x2="594" y2="104" stroke="#7fd1c2" stroke-width="2" id="wmline" stroke-dasharray="600" stroke-dashoffset="600"/>
+      </svg>
+    </div>
+    <div class="price-resolve" id="price"><span class="cur">▒▒▒▒▒▒ ▒▒▒</span></div>
+    <div class="t-lede" style="max-width:30ch;">A calm, nocturnal instrument. Sense a statistical edge before the market shows it.</div>
+    <div class="scroll-cue">Scroll to wake the field<span class="line"></span></div>
+  </section>
+
+  <!-- 2 · THE WINDOW -->
+  <section id="window" class="pin-pad"><div class="wrap">
+    <div class="beat">
+      <div class="t-label">Chapter 02 · The Window</div>
+      <div class="t-h2" style="margin-top:14px;">One contract. Fifteen minutes.</div>
+      <p class="t-body" style="margin-top:18px;max-width:56ch;">Each slot opens on the quarter-hour and resolves on a 60-second average of the CF Benchmarks Bitcoin Real-Time Index. The window is short. The instrument is patient.</p>
+
+      <div class="countdown-big" id="cd">06:42</div>
+      <div class="t-label" style="margin-top:6px;">remaining to settlement</div>
+
+      <div class="window-rail">
+        <div class="track" id="wtrack"></div>
+        <div class="target" id="wtgt" style="left:54%"></div>
+        <div class="now" id="wnow" style="left:8%"></div>
+        <div class="marks"><span>21:30</span><span>21:37</span><span>21:45</span></div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="cell"><div class="k">Slot</div><div class="v">KXBTC15M · 21:45</div></div>
+        <div class="cell"><div class="k">Target</div><div class="v">$71,388.71</div></div>
+        <div class="cell"><div class="k">Reference</div><div class="v">Kalshi public</div></div>
+        <div class="cell"><div class="k">Settlement</div><div class="v">CF BRTI · 60s avg</div></div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- 3 · THE VERDICT -->
+  <section id="verdict" class="pin-pad"><div class="wrap">
+    <div class="beat">
+      <div class="t-label">Chapter 03 · The Verdict</div>
+      <div class="verdict-card" style="margin-top:18px;">
+        <div class="t-label">PRE Engine · v0.1</div>
+        <div class="verdict-word spec" id="vword" style="margin-top:10px;">SPECULATIVE · UP</div>
+        <p class="t-body" style="margin-top:14px;">Historical edge for this weekday and time is positive, but not statistically significant once you account for sample size and multiple comparisons.</p>
+        <div class="confbar"><i id="conf"></i></div>
+        <div class="stat-grid">
+          <div class="cell"><div class="k">Confidence</div><div class="v" id="confv">0.00</div></div>
+          <div class="cell"><div class="k">Slot base rate</div><div class="v">53.1% Up</div></div>
+          <div class="cell"><div class="k">n · 90d</div><div class="v">86</div></div>
+          <div class="cell"><div class="k">95% CI</div><div class="v">42.4–63.5%</div></div>
+        </div>
+        <div style="margin-top:22px;display:flex;align-items:center;gap:12px;">
+          <div style="display:flex;gap:3px;align-items:flex-end;height:16px;">
+            <i style="width:5px;height:60%;background:var(--accent);border-radius:1px;"></i>
+            <i style="width:5px;height:80%;background:var(--accent);border-radius:1px;"></i>
+            <i style="width:5px;height:50%;background:var(--accent);border-radius:1px;"></i>
+            <i style="width:5px;height:30%;background:var(--steel);border-radius:1px;"></i>
+            <i style="width:5px;height:20%;background:var(--steel);border-radius:1px;"></i>
+          </div>
+          <span class="t-body" style="font-size:0.86rem;">Signal integrity · moderate, regime-dependent</span>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- 4 · THE ASSAY -->
+  <section id="assay" class="pin-pad"><div class="wrap">
+    <div class="beat">
+      <div class="t-label">Chapter 04 · The Assay</div>
+      <div class="t-h2" style="margin-top:14px;">Frozen before the outcome is known.</div>
+      <p class="t-body" style="margin-top:18px;max-width:58ch;">A Reeding Assay is one immutable forecast-to-outcome record. The forecast is written once. Settlement is appended as a sibling — never edited into the frozen bytes.</p>
+
+      <div class="assay-lock" style="margin-top:30px;">
+        <div class="lock-chip" id="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+        <div><div class="t-mono-big" style="font-size:1.3rem;">2026-09-02 21:29:04 UTC</div><div class="t-label" style="margin-top:4px;">Forecast locked at</div></div>
+        <span class="freeze-badge" id="fbadge" style="margin-left:auto;">FROZEN</span>
+      </div>
+
+      <div class="assay-table">
+        <div class="assay-row"><span class="k">Assay ID</span><span class="v">7f3a…c12e</span></div>
+        <div class="assay-row"><span class="k">Engine version</span><span class="v">PRE v0.1</span></div>
+        <div class="assay-row"><span class="k">Target price</span><span class="v">$71,388.71</span></div>
+        <div class="assay-row"><span class="k">Last price at lock</span><span class="v">$71,402.18</span></div>
+        <div class="assay-row"><span class="k">Contract cost</span><span class="v">52¢</span></div>
+        <div class="assay-row"><span class="k">Status</span><span class="v accent">FROZEN · pre-settlement</span></div>
+      </div>
+
+      <div class="settlement-append" id="settle">
+        <div class="t-label">Settlement · appended later, sibling record</div>
+        <div class="assay-row" style="border-bottom:none;padding-top:12px;"><span class="k">Outcome</span><span class="v" style="color:var(--up);">UP ✓</span></div>
+        <div class="assay-row" style="border-bottom:none;padding:6px 0;"><span class="k">Settlement price</span><span class="v">$71,410.40</span></div>
+        <div class="assay-row" style="border-bottom:none;padding:6px 0;"><span class="k">Settled at</span><span class="v">21:46 UTC</span></div>
+      </div>
+
+      <div class="sample" style="margin-top:24px;">SAMPLE · not a live forecast · frozen bytes never rewritten</div>
+    </div>
+  </div></section>
+
+  <!-- 5 · THE CENSUS -->
+  <section id="census" class="pin-pad"><div class="wrap">
+    <div class="beat">
+      <div class="t-label">Chapter 05 · The Census</div>
+      <div class="t-h2" style="margin-top:14px;">Evidence accumulates.</div>
+      <p class="t-body" style="margin-top:18px;max-width:56ch;">Every frozen Assay and its later settlement is recorded in the private Reeding Census. The Census tracks what the engine predicted and what happened — not what anyone wagered.</p>
+
+      <div class="census-stream" id="cstream">
+        <div class="assay-chip"><span class="d spec"></span><span class="slot">21:30 slot</span><span class="res">SPEC · settled UP</span></div>
+        <div class="assay-chip"><span class="d wait"></span><span class="slot">21:15 slot</span><span class="res">WAIT · settled UP</span></div>
+        <div class="assay-chip"><span class="d up"></span><span class="slot">21:00 slot</span><span class="res">BUY_UP · UP ✓</span></div>
+        <div class="assay-chip"><span class="d down"></span><span class="slot">20:45 slot</span><span class="res">BUY_DOWN · UP ✗</span></div>
+        <div class="assay-chip"><span class="d spec"></span><span class="slot">20:30 slot</span><span class="res">SPEC · settled DOWN</span></div>
+        <div class="assay-chip"><span class="d up"></span><span class="slot">20:15 slot</span><span class="res">BUY_UP · UP ✓</span></div>
+      </div>
+
+      <div class="grade-row">
+        <span class="grade-badge prov">PROVISIONAL</span>
+        <div><div class="t-label">Reeding Grade · PRE v0.1</div><div class="t-body" style="font-size:0.9rem;">214 settled · calibration 0.51 → 0.54</div></div>
+      </div>
+      <div class="t-label" style="margin-top:26px;">Integrity · 2 missed / 96 · 0 stale · 2 gap records preserved</div>
+    </div>
+  </div></section>
+
+  <!-- 6 · METHOD -->
+  <section id="method" class="pin-pad"><div class="wrap">
+    <div class="beat">
+      <div class="t-label">Chapter 06 · Method</div>
+      <div class="t-h2" style="margin-top:14px;">What it knows. What it doesn't.</div>
+      <div class="know-grid">
+        <div class="know-card">
+          <h4>Knows</h4>
+          <ul>
+            <li><span class="mark">✓</span> Historical slot base rates</li>
+            <li><span class="mark">✓</span> Prospective Assay record</li>
+            <li><span class="mark">✓</span> Engine-version calibration</li>
+            <li><span class="mark">✓</span> Public settlement outcomes</li>
+          </ul>
+        </div>
+        <div class="know-card">
+          <h4>Does NOT know</h4>
+          <ul>
+            <li><span class="mark" style="color:var(--text-faint);">—</span> Future regime shifts</li>
+            <li><span class="mark" style="color:var(--text-faint);">—</span> Significant edges (mostly)</li>
+            <li><span class="mark" style="color:var(--text-faint);">—</span> Your personal bankroll</li>
+            <li><span class="mark" style="color:var(--text-faint);">—</span> The next draw</li>
+          </ul>
+        </div>
+      </div>
+      <p class="t-body" style="margin-top:26px;font-size:0.92rem;">Settlement is read directly from Kalshi's public market data. BTC at 15-minute scale is close to a random walk — the base rate is roughly a coin flip. Most edges are not significant after multiple comparisons.</p>
+    </div>
+  </div></section>
+
+  <!-- 7 · MANUAL LEDGER -->
+  <section id="ledger" class="pin-pad"><div class="wrap">
+    <div class="beat">
+      <div class="t-label">Chapter 07 · Manual Ledger</div>
+      <div class="t-h2" style="margin-top:14px;">Your records. Never the Census.</div>
+      <div class="ledger-card" style="margin-top:22px;">
+        <div class="t-label">Cumulative P&amp;L</div>
+        <div class="t-mono-big" style="color:var(--up);margin-top:8px;">+$184.20</div>
+        <div class="equity" id="equity">
+          <i class="r" style="height:30%"></i><i class="g" style="height:45%"></i><i class="r" style="height:38%"></i><i class="g" style="height:55%"></i><i class="g" style="height:60%"></i><i class="r" style="height:48%"></i><i class="g" style="height:65%"></i><i class="g" style="height:72%"></i><i class="r" style="height:58%"></i><i class="g" style="height:78%"></i><i class="g" style="height:82%"></i><i class="r" style="height:70%"></i><i class="g" style="height:85%"></i><i class="g" style="height:90%"></i>
+        </div>
+        <div class="stat-grid" style="margin-top:22px;">
+          <div class="cell"><div class="k">Staked</div><div class="v">$1,240.00</div></div>
+          <div class="cell"><div class="k">Win rate</div><div class="v">52.4%</div></div>
+          <div class="cell"><div class="k">Pending</div><div class="v">$40.00</div></div>
+          <div class="cell"><div class="k">Assays</div><div class="v">separate</div></div>
+        </div>
+        <div class="sep-callout"><b>Separation:</b> this ledger records only what you wagered. It is never merged into the Census. The Census tracks what the engine predicted and what happened — not your positions.</div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- 8 · CLOSE -->
+  <section class="close">
+    <div class="wrap">
+      <p class="caveat"><b>Silverline is a historical backtest / probability tool, not financial advice.</b> BTC is close to a random walk at the 15-minute scale — the overall base rate is roughly a coin flip. Most time-of-day edges are not statistically significant once you account for sample size and multiple comparisons. Any single slot's win rate is a weak, regime-dependent signal, never a guarantee. Past performance does not predict future results.</p>
+      <div class="sig">SILVERLINE V3 · THE FIELD · ALL FIGURES ARE SAMPLE DATA · NO TRADE CALLS · BUILD 2026-09-02</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Lenis + GSAP -->
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script>
+(function () {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ── Lenis smooth scroll ── */
+  let lenis;
+  if (!reduce) {
+    lenis = new Lenis({ duration: 1.05, smoothWheel: true, wheelMultiplier: 0.95 });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((t) => lenis.raf(t * 1000));
+    gsap.ticker.lagSmoothing(0);
+  }
+
+  /* ── Ambient reeded field (canvas 2D) ── */
+  const cv = document.getElementById('field');
+  const ctx = cv.getContext('2d');
+  let w, h, dpr, t = 0;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = cv.clientWidth = window.innerWidth;
+    h = cv.clientHeight = window.innerHeight;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize(); window.addEventListener('resize', resize);
+  let scrollP = 0;
+  window.addEventListener('scroll', () => { scrollP = window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight); }, { passive: true });
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    // vertical reeded grooves, drifting + pulsing with scroll
+    const grooveCount = Math.max(40, Math.floor(w / 18));
+    const gap = w / grooveCount;
+    for (let i = 0; i < grooveCount; i++) {
+      const x = i * gap;
+      const phase = i * 0.27;
+      const wave = Math.sin(t * 0.6 + phase) * 0.5 + 0.5;
+      const scrollBoost = 0.25 + scrollP * 0.9;
+      const baseAlpha = 0.025 + wave * 0.06 * scrollBoost;
+      // taller near vertical center, fading at edges (reeded edge feel)
+      const cy = h * 0.5;
+      const dist = Math.abs(x - w * 0.5) / (w * 0.5);
+      const heightFactor = 1 - dist * 0.55;
+      const gh = h * 0.7 * heightFactor;
+      const gy = cy - gh / 2;
+      const grd = ctx.createLinearGradient(0, gy, 0, gy + gh);
+      grd.addColorStop(0, 'rgba(127,209,194,0)');
+      grd.addColorStop(0.5, 'rgba(127,209,194,' + baseAlpha + ')');
+      grd.addColorStop(1, 'rgba(127,209,194,0)');
+      ctx.fillStyle = grd;
+      ctx.fillRect(x, gy, Math.max(1, gap * 0.5), gh);
+    }
+    // faint horizontal scan drift
+    ctx.fillStyle = 'rgba(199,208,221,0.015)';
+    for (let y = 0; y < h; y += 3) { ctx.fillRect(0, y + ((t * 8) % 3), w, 1); }
+    t += 0.016;
+    if (!reduce) requestAnimationFrame(draw);
+  }
+  if (!reduce) requestAnimationFrame(draw); else { ctx.fillStyle = 'rgba(127,209,194,0.03)'; ctx.fillRect(0,0,w,h); }
+
+  /* ── Scroll progress reed ── */
+  const reed = document.querySelector('.reed i');
+  ScrollTrigger.create({ start: 0, end: 'max', onUpdate: (s) => {
+    reed.style.height = (s.progress * 100) + 'vh';
+  }});
+
+  /* ── Hero: price resolves from noise ── */
+  const priceEl = document.getElementById('price');
+  const target = '71,402.18';
+  let resolved = false;
+  function paintNoise() {
+    let s = '<span class="cur">$</span>';
+    for (let i = 0; i < target.length; i++) {
+      s += target[i] === ',' || target[i] === '.' ? target[i] : '▒';
+    }
+    priceEl.innerHTML = s;
+  }
+  let noiseTimer = null;
+  if (!reduce) {
+    paintNoise();
+    noiseTimer = setInterval(paintNoise, 90);
+    setTimeout(() => {
+      if (!resolved) { resolved = true; clearInterval(noiseTimer); priceEl.innerHTML = '<span class="cur">$</span><span class="resolved">71,402.18</span>'; }
+    }, 1600);
+  } else {
+    resolved = true; priceEl.innerHTML = '<span class="cur">$</span><span class="resolved">71,402.18</span>';
+  }
+
+  const heroTl = gsap.timeline({ scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true } });
+  heroTl.to({}, { duration: 0.5 });
+  heroTl.to('#hero .t-cap, #hero .t-lede, #hero .scroll-cue', { opacity: 0, y: -20, duration: 0.4 });
+
+  /* wordmark draw */
+  if (!reduce) {
+    gsap.fromTo('#wmline', { strokeDashoffset: 600 }, { strokeDashoffset: 0, duration: 1.4, ease: 'power2.out', delay: 0.3 });
+    gsap.from('#hero .wordmark, #hero .price-resolve', { opacity: 0, y: 16, duration: 1, ease: 'power2.out', stagger: 0.15 });
+  } else {
+    document.getElementById('wmline').setAttribute('stroke-dashoffset', 0);
+  }
+
+  /* ── The Window: countdown + rail scrub ── */
+  gsap.to('#wtrack', { width: '100%', ease: 'none', scrollTrigger: { trigger: '#window', start: 'top top', end: 'bottom top', scrub: true } });
+  gsap.to('#wnow', { left: '54%', ease: 'none', scrollTrigger: { trigger: '#window', start: 'top top', end: 'bottom top', scrub: true } });
+  gsap.fromTo('#cd', { '--n': 0 }, { '--n': 1, ease: 'none', scrollTrigger: { trigger: '#window', start: 'top top', end: 'bottom top', scrub: true },
+    onUpdate: function () {
+      const secs = 6 * 60 + 42;
+      const elapsed = Math.floor(secs * this.progress);
+      const rem = secs - elapsed;
+      const m = String(Math.floor(rem / 60)).padStart(2, '0');
+      const s = String(rem % 60).padStart(2, '0');
+      document.getElementById('cd').textContent = m + ':' + s;
+    }
+  });
+
+  /* ── The Verdict: word + confidence scrub ── */
+  gsap.fromTo('#conf', { width: '0%' }, { width: '54%', ease: 'none', scrollTrigger: { trigger: '#verdict', start: 'top center', end: 'bottom center', scrub: true } });
+  gsap.to('#confv', { textContent: 0.54, snap: { textContent: 0.01 }, ease: 'none', scrollTrigger: { trigger: '#verdict', start: 'top center', end: 'bottom center', scrub: true } });
+  gsap.from('#vword', { opacity: 0, letterSpacing: '0.3em', filter: 'blur(8px)', ease: 'none', scrollTrigger: { trigger: '#verdict', start: 'top center', end: '30% center', scrub: true } });
+
+  /* ── The Assay: freeze beat + settlement append ── */
+  gsap.fromTo('#lock', { rotate: -8, opacity: 0.4 }, { rotate: 0, opacity: 1, ease: 'power2.out', scrollTrigger: { trigger: '#assay', start: 'top center', end: '30% center', scrub: true } });
+  gsap.fromTo('#fbadge', { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, ease: 'back.out(2)', scrollTrigger: { trigger: '#assay', start: '25% center', end: '35% center', scrub: true } });
+  gsap.to('#settle', { opacity: 1, y: 0, ease: 'none', scrollTrigger: { trigger: '#assay', start: '55% center', end: 'bottom center', scrub: true } });
+
+  /* ── The Census: cascade ── */
+  gsap.to('.assay-chip', { opacity: 1, y: 0, ease: 'power2.out', stagger: 0.08, scrollTrigger: { trigger: '#census', start: 'top center', end: '60% center', scrub: true } });
+  gsap.from('.grade-badge', { scale: 0.8, opacity: 0, ease: 'back.out(2)', scrollTrigger: { trigger: '#census', start: '50% center', end: '70% center', scrub: true } });
+
+  /* ── Method + Ledger fades ── */
+  gsap.from('#method .know-card', { opacity: 0, y: 30, ease: 'none', stagger: 0.1, scrollTrigger: { trigger: '#method', start: 'top center', end: '50% center', scrub: true } });
+  gsap.from('#equity i', { scaleY: 0, transformOrigin: 'bottom', ease: 'none', stagger: 0.04, scrollTrigger: { trigger: '#ledger', start: 'top center', end: '60% center', scrub: true } });
+  gsap.from('#ledger .ledger-card', { opacity: 0, y: 30, ease: 'none', scrollTrigger: { trigger: '#ledger', start: 'top center', end: '40% center', scrub: true } });
+
+  /* ── Pointer-reactive hero field tilt (desktop) ── */
+  if (!reduce && window.matchMedia('(pointer:fine)').matches) {
+    const hero = document.getElementById('hero');
+    hero.addEventListener('pointermove', (e) => {
+      const r = hero.getBoundingClientRect();
+      const nx = (e.clientX - r.left) / r.width - 0.5;
+      const ny = (e.clientY - r.top) / r.height - 0.5;
+      gsap.to('#hero .wordmark', { x: nx * 14, y: ny * 8, duration: 0.8, ease: 'power2.out' });
+      gsap.to('#hero .price-resolve', { x: nx * -10, y: ny * 6, duration: 0.8, ease: 'power2.out' });
+    });
+    hero.addEventListener('pointerleave', () => {
+      gsap.to('#hero .wordmark, #hero .price-resolve', { x: 0, y: 0, duration: 0.8, ease: 'power2.out' });
+    });
+  }
+})();
+</script>
+</body>
+</html>
