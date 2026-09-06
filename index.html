@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Silverline · V3 — BTC 15-Min Edge Finder</title>
+<meta name="description" content="Silverline V3 — a historical-edge and pricing-context instrument for Kalshi BTC 15-minute binary markets. Live Kalshi public data. Not financial advice." />
+<meta name="color-scheme" content="dark" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&display=swap" rel="stylesheet" />
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@300,400,500,600,700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#05080b; --panel:#0d1218; --panel2:#141a22; --line:#1f2832;
+    --txt:#e8eaee; --mut:#8a93a0; --mut2:#525d6b;
+    --silver:#d4d8de; --silver-dim:#737b86;
+    --jade:#4E9B7E; --oxblood:#A85A4A; --amber:#c98a2b;
+    --jade-dim:rgba(78,155,126,.14); --ox-dim:rgba(168,90,74,.14);
+    --mono:"General Sans","Inter",sans-serif; --sans:"General Sans","Inter",sans-serif;
+    --display:"Fraunces","Georgia",serif;
+    --ease:cubic-bezier(0.22,1,0.36,1);
+    --maxw:760px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums lining-nums;overflow-x:hidden;min-height:100vh}
+  a{color:var(--silver-dim)}
+  :focus-visible{outline:2px solid var(--silver);outline-offset:2px;border-radius:4px}
+
+  /* Ambient reeding field — drifts gently; static under reduced-motion */
+  .ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .reed{position:absolute;inset:-10%;width:120%;height:120%;
+    background:repeating-linear-gradient(92deg,transparent 0,transparent 42px,rgba(212,216,222,.02) 42px,rgba(212,216,222,.02) 43px,transparent 43px,transparent 84px);
+    animation:reed-drift 72s linear infinite;will-change:background-position}
+  @keyframes reed-drift{from{background-position:0 0}to{background-position:840px 0}}
+  .glow{position:absolute;inset:0;
+    background:radial-gradient(120% 80% at 82% -10%,rgba(78,155,126,.07),transparent 60%),radial-gradient(90% 70% at 6% 112%,rgba(168,90,74,.05),transparent 60%);
+    animation:glow-breathe 20s ease-in-out infinite}
+  @keyframes glow-breathe{0%,100%{opacity:.65}50%{opacity:1}}
+
+  .wrap{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;padding:14px 14px 40px}
+
+  /* Topbar */
+  .topbar{display:flex;align-items:center;gap:11px;padding:4px 0 13px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .mark{height:24px;width:24px;border-radius:6px;flex:none;background:conic-gradient(from 220deg,var(--silver),#7d8590,var(--silver));box-shadow:0 0 0 1px rgba(212,216,222,.2),0 0 18px rgba(212,216,222,.14)}
+  .wm{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .wordmark{font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:.3px;line-height:1}
+  .sub{font-size:10px;color:var(--mut2);font-family:var(--mono);letter-spacing:.6px;text-transform:uppercase}
+  .pill{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
+  .price{font-family:var(--display);font-size:21px;font-weight:600;letter-spacing:.3px;line-height:1;white-space:nowrap}
+  .price .cur{color:var(--mut2);font-size:12px;margin-right:2px}
+  .price .chg{font-family:var(--mono);font-size:11px;margin-left:6px;font-weight:500}
+  .chg.up{color:var(--jade)} .chg.dn{color:var(--oxblood)} .chg.fl{color:var(--mut2)}
+  .clockline{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);padding:3px 7px;border-radius:6px;letter-spacing:.4px;text-transform:uppercase}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--jade);box-shadow:0 0 8px var(--jade)}
+  .dot.live{background:var(--jade);box-shadow:0 0 8px var(--jade);animation:dot-pulse 2.4s ease-in-out infinite}
+  .dot.stale{background:var(--amber);box-shadow:0 0 8px var(--amber);animation:none}
+  .dot.err{background:var(--oxblood);box-shadow:0 0 8px var(--oxblood)}
+  @keyframes dot-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .clock{font-family:var(--mono);font-size:11px;color:var(--mut)}
+
+  /* Provenance banner */
+  .prov-banner{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;color:var(--mut);background:rgba(13,18,24,.6);border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:14px;letter-spacing:.3px}
+  .prov-banner .src{color:var(--silver-dim);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .prov-banner .sep{color:var(--mut2)}
+  .prov-banner .fresh{color:var(--jade)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 15px;margin-bottom:12px;position:relative;overflow:hidden}
+  .card::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 60% at 50% -20%,rgba(255,255,255,.022),transparent 70%)}
+  .card-h{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+  .k-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--mut2);font-weight:600;font-family:var(--mono)}
+  .state-tag{font-family:var(--mono);font-size:9.5px;color:var(--mut2);letter-spacing:.7px;text-transform:uppercase;margin-left:auto}
+  .state-tag.live{color:var(--jade)} .state-tag.hist{color:var(--amber)}
+  .prov{font-family:var(--mono);font-size:9.5px;color:var(--mut2);line-height:1.5;margin:4px 0 10px;letter-spacing:.2px}
+  .prov b{color:var(--mut);font-weight:600}
+
+  /* Field state */
+  .field-row{display:flex;align-items:baseline;gap:14px;justify-content:space-between;flex-wrap:wrap}
+  .field-state{font-family:var(--display);font-size:30px;font-weight:600;letter-spacing:.4px;line-height:1.05}
+  .field-state.quiet{color:var(--mut2)} .field-state.read{color:var(--mut)} .field-state.watch{color:var(--silver)} .field-state.gold{color:var(--silver)}
+  .window-lbl{font-family:var(--mono);font-size:12px;color:var(--mut);letter-spacing:.3px}
+  .countdown-wrap{text-align:right}
+  .countdown-wrap .lbl{font-family:var(--mono);font-size:9px;color:var(--mut2);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:-2px}
+  .countdown{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:.5px}
+  .countdown.settling{color:var(--amber)}
+
+  /* Stat grid */
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:0;margin-top:12px;border-top:1px dashed var(--line);padding-top:11px}
+  .stat{display:flex;flex-direction:column;gap:1px;padding:5px 0}
+  .stat .k{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut2);font-family:var(--mono)}
+  .stat .v{font-family:var(--mono);font-size:13px;color:var(--txt)}
+  .stat .v.big{font-family:var(--display);font-size:17px;font-weight:600}
+
+  /* Verdict / PRE */
+  .verdict-line{font-family:var(--mono);font-size:12px;margin-top:6px;letter-spacing:.2px}
+  .verdict-line .yes{color:var(--jade)} .verdict-line .no{color:var(--oxblood)} .verdict-line .flat{color:var(--mut2)}
+  .pill-tag{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:5px;border:1px solid;margin-left:7px;vertical-align:middle}
+  .pill-tag.hist{color:var(--amber);border-color:rgba(201,138,43,.3);background:rgba(201,138,43,.07)}
+
+  /* Quote / contract price */
+  .quote-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+  .quote-cell .num{font-family:var(--display);font-size:24px;font-weight:600;letter-spacing:.3px}
+  .quote-cell .num.jade{color:var(--jade)} .quote-cell .num.ox{color:var(--oxblood)}
+  .quote-cell .sub2{font-family:var(--mono);font-size:11px;color:var(--mut);margin-top:2px}
+
+  /* Sparkline */
+  .spark-wrap{margin-top:12px;border-top:1px dashed var(--line);padding-top:11px}
+  .spark{width:100%;height:54px;display:block}
+  .spark-cap{font-family:var(--mono);font-size:9.5px;color:var(--mut2);display:flex;justify-content:space-between;margin-top:4px;letter-spacing:.3px}
+
+  /* Tables */
+  .tbl-wrap{overflow-x:auto;margin:0 -3px}
+  table.edge{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px;min-width:420px}
+  table.edge th,table.edge td{text-align:right;padding:7px 8px;white-space:nowrap}
+  table.edge th{font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut2);font-weight:600;border-bottom:1px solid var(--line)}
+  table.edge td:first-child,table.edge th:first-child{text-align:left}
+  table.edge tbody tr{border-bottom:1px solid rgba(31,40,50,.5)}
+  table.edge tbody tr:last-child{border-bottom:none}
+  .side-tag{font-weight:600}
+  .side-tag.up{color:var(--jade)} .side-tag.dn{color:var(--oxblood)}
+  .edge-val.up{color:var(--jade)} .edge-val.dn{color:var(--oxblood)}
+
+  /* Heatmap */
+  .heat-wrap{margin-top:4px}
+  .heat{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin-top:2px}
+  .heat .cell{aspect-ratio:1;border-radius:3px;background:var(--panel2);border:1px solid rgba(31,40,50,.6);position:relative;cursor:default}
+  .heat .cell.now{outline:2px solid var(--amber);outline-offset:1px;z-index:2}
+  .heat .cell .tt{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:9.5px;padding:4px 6px;border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:10}
+  .heat .cell:hover .tt,.heat .cell:focus-visible .tt{opacity:1}
+  .heat-axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--mut2);margin-top:6px;letter-spacing:.3px}
+  .heat-legend{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;color:var(--mut2);margin-top:8px;letter-spacing:.3px}
+  .heat-legend .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .heat-legend .grad{width:90px;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--oxblood),#3a3530,#3a3530,var(--jade))}
+
+  /* EV calc */
+  .ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:4px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut2);font-family:var(--mono);font-weight:600}
+  .field input,.field select{font-family:var(--mono);font-size:14px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:9px 10px;border-radius:8px;width:100%;min-height:42px}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--silver-dim)}
+  .ev-out{margin-top:13px;border-top:1px dashed var(--line);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ev-out .o{display:flex;flex-direction:column;gap:1px}
+  .ev-out .ok{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut2);font-family:var(--mono)}
+  .ev-out .ov{font-family:var(--mono);font-size:13px;color:var(--txt)}
+  .ev-out .ov.hi{font-family:var(--display);font-size:18px;font-weight:600}
+  .ev-out .ov.pos{color:var(--jade)} .ev-out .ov.neg{color:var(--oxblood)}
+
+  /* Ledger */
+  .ledger-note{font-family:var(--mono);font-size:10px;color:var(--amber);background:rgba(201,138,43,.07);border:1px solid rgba(201,138,43,.24);padding:7px 10px;border-radius:8px;margin-bottom:11px;letter-spacing:.2px}
+  .led-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:11px}
+  .led-stat{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 10px}
+  .led-stat .k{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut2);font-family:var(--mono)}
+  .led-stat .v{font-family:var(--mono);font-size:14px;color:var(--txt);margin-top:2px}
+  .led-stat .v.pos{color:var(--jade)} .led-stat .v.neg{color:var(--oxblood)}
+  .eq-wrap{margin-bottom:11px}
+  .eq{width:100%;height:90px;display:block}
+  .empty{font-family:var(--mono);font-size:11px;color:var(--mut2);text-align:center;padding:18px 0;letter-spacing:.2px}
+  table.led{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+  table.led th,table.led td{text-align:right;padding:6px 7px;white-space:nowrap}
+  table.led th{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut2);font-weight:600;border-bottom:1px solid var(--line)}
+  table.led td:first-child,table.led th:first-child{text-align:left}
+  .btn{font-family:var(--mono);font-size:11px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);padding:9px 13px;border-radius:8px;cursor:pointer;letter-spacing:.3px;transition:all .2s var(--ease);min-height:38px;display:inline-flex;align-items:center;gap:6px;font-weight:500}
+  .btn:hover{color:var(--txt);border-color:var(--silver-dim)}
+  .btn.primary{color:var(--bg);background:var(--silver);border-color:var(--silver)}
+  .btn.primary:hover{background:#c4c8ce}
+  .btn.danger{color:var(--oxblood);border-color:rgba(168,90,74,.4)}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+
+  /* Compliance */
+  .compliance{font-size:11.5px;color:var(--mut2);line-height:1.65;border:1px solid var(--line);background:rgba(13,18,24,.5);border-radius:11px;padding:13px 14px;margin:4px 0 14px}
+  .compliance b{color:var(--mut);font-weight:600}
+  .compliance .lead{color:var(--mut);font-weight:600;display:block;margin-bottom:4px}
+  .section-title{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut2);font-weight:600;margin:18px 2px 9px;display:flex;align-items:center;gap:8px}
+  .section-title::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .foot{margin-top:18px;font-size:10px;color:var(--mut2);font-family:var(--mono);letter-spacing:.3px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+
+  .skeleton{background:linear-gradient(90deg,var(--panel2) 25%,#1a212b 37%,var(--panel2) 63%);background-size:400% 100%;animation:sk 1.3s ease infinite;border-radius:6px}
+  @keyframes sk{0%{background-position:100% 0}100%{background-position:-100% 0}}
+  .err-box{font-family:var(--mono);font-size:11px;color:var(--oxblood);background:rgba(168,90,74,.08);border:1px solid rgba(168,90,74,.3);padding:10px 12px;border-radius:9px;letter-spacing:.2px;line-height:1.6}
+
+  @media(min-width:520px){
+    .stats{grid-template-columns:repeat(4,1fr)}
+    .ev-grid{grid-template-columns:repeat(2,1fr)}
+    .ev-out{grid-template-columns:repeat(3,1fr)}
+    .led-stats{grid-template-columns:repeat(4,1fr)}
+  }
+  @media(min-width:680px){
+    body{font-size:15px}
+    .wrap{padding:20px 20px 48px}
+    .heat{grid-template-columns:repeat(48,1fr)}
+    .quote-grid{grid-template-columns:1fr 1fr}
+  }
+  @media(min-width:1040px){
+    .wrap{max-width:1040px;padding:26px 28px 56px}
+    .tools{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;align-items:start}
+    .stats{grid-template-columns:repeat(4,1fr)}
+    .led-stats{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .reed,.glow,.dot.live{animation:none!important}
+    .reed{background-position:0 0}
+    .skeleton{animation:none}
+  }
+</style>
+</head>
+<body>
+<div class="ambient" aria-hidden="true"><div class="reed"></div><div class="glow"></div></div>
+<div class="wrap">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="mark" aria-hidden="true"></div>
+    <div class="wm">
+      <div class="wordmark">Silverline</div>
+      <div class="sub">PRE · Reeding Field · V3</div>
+    </div>
+    <div class="pill">
+      <div class="price"><span class="cur">$</span><span id="px">—</span><span class="chg fl" id="pxChg">·</span></div>
+      <div class="clockline">
+        <span class="badge"><span class="dot" id="liveDot"></span><span id="liveTag">connecting</span></span>
+        <span class="clock" id="clk">--:--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- PROVENANCE BANNER -->
+  <div class="prov-banner" id="provBanner">
+    <span class="dot" id="banDot"></span>
+    <span class="src">SOURCE</span>
+    <span>Kalshi public API · KXBTC15M (BTC up/down, 15-min)</span>
+    <span class="sep">·</span>
+    <span>fetched <b id="fetchedAt">—</b></span>
+    <span class="sep">·</span>
+    <span>freshness <span class="fresh" id="fresh">—</span></span>
+    <span class="sep">·</span>
+    <span>auto-refresh 15s</span>
+  </div>
+
+  <!-- LIVE / ERROR NOTICE -->
+  <div id="errNotice" style="display:none" class="err-box"></div>
+
+  <!-- 1. FIELD STATE -->
+  <section class="card" aria-labelledby="fs-h">
+    <div class="card-h">
+      <span class="k-label" id="fs-h">Field State</span>
+      <span class="state-tag live" id="fsState">LIVE · Kalshi public</span>
+    </div>
+    <div class="prov" id="fsProv"><b>Provenance:</b> current 15-min market from Kalshi <span style="color:var(--mut2)">/trade-api/v2/markets?series_ticker=KXBTC15M&status=open</span>. Settlement basis: CF Benchmarks BRTI 60-second average.</div>
+    <div class="field-row">
+      <div>
+        <div class="field-state quiet" id="fieldState">READING</div>
+        <div class="window-lbl" id="windowLbl">window · —</div>
+      </div>
+      <div class="countdown-wrap">
+        <span class="lbl">settles in</span>
+        <div class="countdown" id="countdown">--:--</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="k">Target strike</span><span class="v big" id="kStrike">—</span></div>
+      <div class="stat"><span class="k">Contract price (YES)</span><span class="v big" id="kYes">—</span></div>
+      <div class="stat"><span class="k">Implied up-prob</span><span class="v" id="kImpl">—</span></div>
+      <div class="stat"><span class="k">24h volume</span><span class="v" id="kVol">—</span></div>
+    </div>
+  </section>
+
+  <!-- 2. PRE EVIDENCE (GRADED · PRE v1.0 ENGINE) -->
+  <section class="card" aria-labelledby="pre-h">
+    <div class="card-h">
+      <span class="k-label" id="pre-h">PRE Evidence</span>
+      <span class="pill-tag hist" id="preTag">graded · PRE v1.0 engine</span>
+    </div>
+    <div class="prov"><b>Provenance:</b> Kalshi KXBTC15M resolved markets graded by the PRE engine — Wilson 95% CI, Bonferroni-corrected significance ladder (UNGRADED / PROVISIONAL / CALIBRATED), and a chronological 70/30 walk-forward out-of-sample validation. <b>This is not a forecast.</b></div>
+    <div class="field-row">
+      <div>
+        <div class="field-state quiet" id="verdict">GRADING…</div>
+        <div class="verdict-line" id="verdictSide"><span class="flat">running engine…</span></div>
+      </div>
+    </div>
+    <div class="compliance" id="honestVerdict" style="margin-top:8px">…</div>
+    <div class="stats">
+      <div class="stat"><span class="k">Calibrated slots</span><span class="v big" id="preCalib">—</span></div>
+      <div class="stat"><span class="k">OOS-validated</span><span class="v big" id="preOos">—</span></div>
+      <div class="stat"><span class="k">Train / test split</span><span class="v" id="preSplit">—</span></div>
+      <div class="stat"><span class="k">Resolved samples</span><span class="v" id="preN">—</span></div>
+    </div>
+    <div class="tbl-wrap" id="preSurvWrap" style="margin-top:10px">
+      <table class="edge"><thead><tr><th>Slot</th><th>Side</th><th>Up-rate</th><th>95% CI</th><th>n</th><th>Edge</th><th>Train→Test</th></tr></thead><tbody id="preSurvBody"></tbody></table>
+    </div>
+    <div class="compliance" style="margin-top:12px"><b>Premium caveat:</b> PRE grades historical tilt only. CALIBRATED does NOT mean the edge is real — most slot tilts are not significant once sample size and 96-way multiple comparisons are accounted for. A slot is only labeled an edge after it survives BOTH Bonferroni calibration AND out-of-sample persistence. <b>Inspect, do not act on this as a forecast.</b></div>
+  </section>
+
+  <!-- 3. QUOTE SURFACE -->
+  <section class="card" aria-labelledby="qs-h">
+    <div class="card-h">
+      <span class="k-label" id="qs-h">Quote Surface</span>
+      <span class="state-tag live" id="qsState">LIVE · Kalshi public</span>
+    </div>
+    <div class="prov"><b>Provenance:</b> order-book quotes from the open Kalshi market <span id="qsTicker" style="color:var(--mut2)">—</span>. Prices in dollars per $1 binary contract. Freshness shown above. <b>Read-only — no execution.</b></div>
+    <div class="quote-grid">
+      <div class="quote-cell">
+        <div class="num jade" id="qYesAsk">—</div>
+        <div class="sub2">YES ask · bid <span id="qYesBid">—</span></div>
+      </div>
+      <div class="quote-cell">
+        <div class="num ox" id="qNoAsk">—</div>
+        <div class="sub2">NO ask · bid <span id="qNoBid">—</span></div>
+      </div>
+    </div>
+    <div class="spark-wrap">
+      <svg class="spark" id="spark" viewBox="0 0 100 54" preserveAspectRatio="none" aria-label="Live contract price (YES) for the current market"></svg>
+      <div class="spark-cap"><span>contract price (YES) · last 30 min</span><span id="sparkLast">—</span></div>
+    </div>
+  </section>
+
+  <!-- 4. VALIDATED EDGE SLOTS -->
+  <div class="section-title">Validated Edge Slots</div>
+  <section class="card" aria-labelledby="te-h">
+    <div class="card-h"><span class="k-label" id="te-h">Decision-grade edges only</span><span class="state-tag hist" id="teState">GRADED</span></div>
+    <div class="prov"><b>Provenance:</b> PRE engine output — slots that survived Bonferroni calibration AND 70/30 walk-forward out-of-sample persistence. If empty, no decision-grade edge exists; the table then falls back to <b>unvalidated</b> descriptive stats (full-sample tilt) for transparency only — those are NOT significance-tested edges.</div>
+    <div class="tbl-wrap">
+      <table class="edge">
+        <thead><tr><th>Slot</th><th>Side</th><th>Up-rate</th><th>95% CI</th><th>n</th><th>Edge</th><th>Train→Test</th></tr></thead>
+        <tbody id="edgeBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 5. 24H HEATMAP -->
+  <div class="section-title">24h Historical Up-Rate Heatmap</div>
+  <section class="card" aria-labelledby="hm-h">
+    <div class="card-h"><span class="k-label" id="hm-h">96 slots · UTC</span><span class="state-tag hist">HISTORICAL</span></div>
+    <div class="prov"><b>Provenance:</b> Kalshi KXBTC15M settled markets, up-rate per UTC 15-min slot. Amber outline = current slot. Color is paired with text labels (never color alone).</div>
+    <div class="heat-wrap"><div class="heat" id="heat"></div></div>
+    <div class="heat-axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:45</span></div>
+    <div class="heat-legend">
+      <span class="sw" style="background:var(--oxblood)"></span><span>down-tilt</span>
+      <span class="grad"></span>
+      <span>up-tilt</span><span class="sw" style="background:var(--jade)"></span>
+      <span style="margin-left:auto;color:var(--mut2)">· empty = no settled sample</span>
+    </div>
+  </section>
+
+  <div class="tools">
+  <div class="tool-col">
+  <!-- 6. EV CALCULATOR -->
+  <div class="section-title">Expected-Value Calculator</div>
+  <section class="card" aria-labelledby="ev-h">
+    <div class="card-h"><span class="k-label" id="ev-h">Pricing context for manual inspection</span><span class="state-tag">LOCAL · your inputs</span></div>
+    <div class="prov"><b>Provenance:</b> calculation runs locally in your browser on the numbers you enter. Not advice. Kalshi binary pays $1 per contract on a correct side.</div>
+    <div class="ev-grid">
+      <div class="field">
+        <label for="evSide">Side</label>
+        <select id="evSide"><option value="yes">YES (up)</option><option value="no">NO (down)</option></select>
+      </div>
+      <div class="field">
+        <label for="evWin">Win probability (%)</label>
+        <input id="evWin" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="55" />
+      </div>
+      <div class="field">
+        <label for="evPrice">Contract price (¢ per $1)</label>
+        <input id="evPrice" type="number" inputmode="decimal" min="0.1" max="99.9" step="0.1" value="55" />
+      </div>
+      <div class="field">
+        <label for="evStake">Stake ($)</label>
+        <input id="evStake" type="number" inputmode="decimal" min="1" step="1" value="100" />
+      </div>
+    </div>
+    <div class="ev-out">
+      <div class="o"><span class="ok">EV per $1 staked</span><span class="ov hi" id="evPer1">—</span></div>
+      <div class="o"><span class="ok">EV ($)</span><span class="ov hi" id="evDollars">—</span></div>
+      <div class="o"><span class="ok">Break-even price</span><span class="ov" id="evBE">—</span></div>
+      <div class="o"><span class="ok">Edge vs price</span><span class="ov" id="evEdge">—</span></div>
+      <div class="o"><span class="ok">Contracts</span><span class="ov" id="evContracts">—</span></div>
+      <div class="o"><span class="ok">Potential payout</span><span class="ov" id="evPayout">—</span></div>
+    </div>
+    <div class="compliance"><b>EV is expected value over many identical bets, not a guarantee on any single one.</b> A positive historical EV on a near-coin-flip market is usually noise, not edge. Not financial advice.</div>
+  </section>
+  </div>
+  <div class="tool-col">
+  <!-- 7. MANUAL BET LEDGER -->
+  <div class="section-title">Manual Bet Ledger</div>
+  <section class="card" aria-labelledby="lg-h">
+    <div class="card-h"><span class="k-label" id="lg-h">Your manual records</span><span class="state-tag">LOCAL · dormant-persist</span></div>
+    <div class="ledger-note">Separate from the evidence above. This ledger loads from and saves to /api/ledger — it persists server-side (Vercel Blob) once the Founder enables the BLOB_READ_WRITE_TOKEN secret; until then it stays in memory and resets on reload. No connection to any exchange or order.</div>
+    <div class="ev-grid">
+      <div class="field"><label for="lgSlot">Slot / label</label><input id="lgSlot" type="text" inputmode="text" placeholder="e.g. 05:00 UTC" /></div>
+      <div class="field"><label for="lgSide">Side</label><select id="lgSide"><option value="yes">YES</option><option value="no">NO</option></select></div>
+      <div class="field"><label for="lgPrice">Price (¢ per $1)</label><input id="lgPrice" type="number" inputmode="decimal" min="0.1" max="99.9" step="0.1" placeholder="55" /></div>
+      <div class="field"><label for="lgStake">Stake ($)</label><input id="lgStake" type="number" inputmode="decimal" min="1" step="1" placeholder="100" /></div>
+      <div class="field"><label for="lgResult">Result</label><select id="lgResult"><option value="pending">Pending</option><option value="win">Win</option><option value="loss">Loss</option></select></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" id="lgAdd">+ Add to ledger</button>
+      <button class="btn" id="lgSample">Add sample bet</button>
+      <button class="btn danger" id="lgClear">Clear all</button>
+    </div>
+    <div class="led-stats" id="ledStats"></div>
+    <div class="eq-wrap"><svg class="eq" id="eq" viewBox="0 0 100 90" preserveAspectRatio="none" aria-label="Equity curve: cumulative P&L over recorded bets"></svg></div>
+    <div class="tbl-wrap" id="ledTableWrap">
+      <table class="led"><thead><tr><th>Slot</th><th>Side</th><th>¢</th><th>Stake</th><th>Result</th><th>P&L</th></tr></thead><tbody id="ledBody"></tbody></table>
+    </div>
+    <div class="empty" id="ledEmpty">No bets recorded yet. Add one above.</div>
+  </section>
+  </div>
+  </div>
+
+  <!-- COMPLIANCE -->
+  <div class="compliance">
+    <span class="lead">Historical backtest / probability tool — not financial advice.</span>
+    BTC is close to a random walk at 15-minute scale — the base rate is roughly a coin flip (the live Kalshi data on this page shows an overall up-rate near 50%). Most time-of-day edges are not statistically significant once you account for sample size and multiple comparisons. Any single slot's win rate is a weak, regime-dependent signal, never a guarantee. Past performance does not predict future results. Silverline surfaces historical context for manual inspection only — it does not execute, place, or auto-resolve bets.
+  </div>
+
+  <footer class="foot">
+    <span>Silverline V3 · PRE v1.0 engine · build 2026-09-05</span>
+    <span>data: Kalshi public KXBTC15M · graded: Wilson CI + Bonferroni + walk-forward · not financial advice</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ---- API base: Vercel serves the static frontend and the /api/* serverless
+   functions from the same origin, so a relative URL works in all
+   environments (local, preview, production). No __PORT__ placeholder. */
+const API = '';
+const REFRESH_MS = 15000;
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let SNAP = null, GRADE = null, lastFetchMs = 0, fetchTimer = null, clockTimer = null;
+let slots = []; // 96 graded slot rows from the PRE engine
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n, d=2) => Number(n).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+const fmtInt = (n) => Number(n).toLocaleString('en-US');
+const pad = (n) => String(n).padStart(2, '0');
+// Kalshi returns ISO strings already ending in 'Z'; our own fetchedAt does too.
+// This parses either form correctly (no double-Z -> Invalid Date).
+function parseUTC(iso){ if(!iso) return new Date(NaN); return new Date(iso.endsWith('Z') ? iso : iso+'Z'); }
+function hhmmUTC(iso){ const d=parseUTC(iso); if(isNaN(d)) return '—'; return pad(d.getUTCHours())+':'+pad(d.getUTCMinutes()); }
+function hhmmssUTC(iso){ const d=parseUTC(iso); if(isNaN(d)) return '--:--:--'; return pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+':'+pad(d.getUTCSeconds()); }
+
+function setErr(msg){ const e=$('errNotice'); e.style.display='block'; e.textContent=msg; }
+function clearErr(){ $('errNotice').style.display='none'; }
+
+/* NOTE: per-slot Wilson CI / edge math used to live here client-side (the
+   "fake PRE"). It is removed. Significance grading now runs server-side in the
+   PRE engine at /api/grade (api/_lib/pre.js) with proper Bonferroni
+   correction + walk-forward out-of-sample validation. The browser only
+   renders the engine's graded output. */
+
+/* slot index 0..95 from an ISO close_time (UTC) */
+function slotIdx(iso){ const d=parseUTC(iso); if(isNaN(d)) return -1; return Math.floor((d.getUTCHours()*60+d.getUTCMinutes())/15); }
+function slotLabel(i){ if(i<0) return '—'; return pad(Math.floor(i*15/60))+':'+pad((i*15)%60); }
+
+/* ---- Fetch ----
+   Snapshot (live market) and grade (PRE engine) are fetched in parallel.
+   slots come from the engine's graded output, not from client-side math.
+   Graceful degradation: if the API returns a structured 503 (Kalshi
+   unreachable), we surface a clean "temporarily unavailable" state and let
+   the 15s auto-refresh retry automatically — never a broken page. */
+async function fetchSnapshot(){
+  try{
+    const [snapRes, gradeRes] = await Promise.all([
+      fetch(`${API}/api/snapshot`, {cache:'no-store'}),
+      fetch(`${API}/api/grade`, {cache:'no-store'}).catch(()=>null),
+    ]);
+    if(!snapRes.ok){
+      // Read the structured error body (503 -> {error, retryAfter}) when present.
+      let detail='';
+      try{ const ej=await snapRes.json(); if(ej&&ej.error) detail=ej.error; }catch(_){}
+      const e=new Error('HTTP '+snapRes.status+(detail?' — '+detail:''));
+      e.status=snapRes.status;
+      throw e;
+    }
+    const j = await snapRes.json();
+    if(j.error) throw new Error(j.error);
+    SNAP = j;
+    if(gradeRes && gradeRes.ok){
+      try{ GRADE = await gradeRes.json(); }catch(e){ GRADE = null; }
+    } else { GRADE = null; }
+    lastFetchMs = Date.now();
+    clearErr();
+    // The engine is the source of per-slot stats now — no client-side edge math.
+    slots = (GRADE && Array.isArray(GRADE.slots)) ? GRADE.slots : [];
+    renderAll();
+  }catch(err){
+    setLiveState('error');
+    const msg=(err&&err.message)||String(err);
+    const unreachable = (err&&err.status===503) || /Kalshi unreachable|503/i.test(msg);
+    if(unreachable){
+      setErr('Market data temporarily unavailable — the Kalshi public API is not responding right now. This page will retry automatically every 15s.');
+    } else {
+      setErr('Live data unavailable: '+msg+'. The Kalshi public API blocks browser requests with an Origin header (HTTP 403); this page reads Kalshi through a read-only sandbox proxy. If the proxy is starting up, data will appear within a few seconds.');
+    }
+  }
+}
+
+/* ---- Render ---- */
+function renderAll(){
+  renderTopbar(); renderProv(); renderField(); renderPRE(); renderQuote();
+  renderEdges(); renderHeat(); renderSpark();
+}
+
+function setLiveState(state){
+  const dot=$('liveDot'), tag=$('liveTag'), bd=$('banDot');
+  dot.className='dot'; bd.className='dot';
+  if(state==='live'){ dot.classList.add('live'); bd.classList.add('live'); tag.textContent='LIVE · Kalshi'; }
+  else if(state==='stale'){ dot.classList.add('stale'); bd.classList.add('stale'); tag.textContent='STALE'; }
+  else if(state==='error'){ dot.classList.add('err'); bd.classList.add('err'); tag.textContent='FIELD INTERRUPTED'; }
+  else { tag.textContent='connecting'; }
+}
+
+function renderTopbar(){
+  if(!SNAP){ return; }
+  setLiveState('live');
+  // BTC reference price = most recent settlement price
+  const settled = SNAP.settled||[];
+  const lastSettled = settled.find(m=>m.v && m.v!=='');
+  const px = lastSettled ? parseFloat(lastSettled.v) : null;
+  if(px){ $('px').textContent = fmtInt(Math.round(px)); }
+  // direction vs previous settlement
+  const settledWithPrice = settled.filter(m=>m.v && m.v!=='').slice(0,8);
+  let chg=$('pxChg'); if(settledWithPrice.length>=2){ const a=parseFloat(settledWithPrice[0].v), b=parseFloat(settledWithPrice[1].v); const d=a-b; chg.className='chg '+(d>0?'up':d<0?'dn':'fl'); chg.textContent=(d>=0?'+':'')+fmt(d,2); }
+  $('clk').textContent = hhmmssUTC(SNAP.fetchedAt);
+}
+
+function renderProv(){
+  if(!SNAP) return;
+  $('fetchedAt').textContent = hhmmssUTC(SNAP.fetchedAt)+' UTC';
+  // freshness updates in clock tick
+}
+
+function renderField(){
+  if(!SNAP) return;
+  const om = (SNAP.openMarkets||[]).find(m=>m.s==='active') || (SNAP.openMarkets||[])[0];
+  if(!om){
+    $('fieldState').textContent='NO OPEN MARKET'; $('fieldState').className='field-state quiet';
+    $('windowLbl').textContent='no active KXBTC15M market';
+    $('countdown').textContent='—';
+    return;
+  }
+  // window label from close_time
+  const closeIso = om.c;
+  const d=parseUTC(closeIso);
+  const startD=new Date(d.getTime()-15*60000);
+  $('windowLbl').textContent = 'window '+pad(startD.getUTCHours())+':'+pad(startD.getUTCMinutes())+'–'+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC · '+om.t;
+  $('kStrike').textContent = om.f!=null ? '$'+fmt(om.f,2) : '—';
+  $('kYes').textContent = om.yAsk!=null ? fmt(parseFloat(om.yAsk)*100,1)+'¢' : '—';
+  $('kImpl').textContent = om.yAsk!=null ? fmt(parseFloat(om.yAsk)*100,1)+'%' : '—';
+  $('kVol').textContent = om.vol!=null ? '$'+fmtInt(Math.round(parseFloat(om.vol))) : '—';
+  // field state: only WATCH if the current slot is a CALIBRATED + OOS-validated edge.
+  // The old fake |edge|>=0.06 gate is gone — significance is now decided by the engine.
+  const ci = slotIdx(closeIso);
+  if(ci>=0 && slots[ci]){
+    const s=slots[ci]; const el=$('fieldState');
+    if(s.grade==='CALIBRATED' && s.survivesOutOfSample){ el.textContent='WATCH'; el.className='field-state watch'; }
+    else if(s.grade==='CALIBRATED'){ el.textContent='WATCH (in-sample)'; el.className='field-state read'; }
+    else { el.textContent='READING'; el.className='field-state read'; }
+  } else { $('fieldState').textContent='READING'; $('fieldState').className='field-state read'; }
+  // countdown handled in tick
+}
+
+function renderPRE(){
+  if(!SNAP) return;
+  const om=(SNAP.openMarkets||[]).find(m=>m.s==='active')||(SNAP.openMarkets||[])[0];
+  const ci = om ? slotIdx(om.c) : -1;
+  const row = ci>=0 ? slots[ci] : null;
+
+  if(!GRADE){
+    $('verdict').textContent='ENGINE UNAVAILABLE'; $('verdict').className='field-state quiet';
+    $('verdictSide').innerHTML='<span class="flat">/api/grade did not respond — no verdict available</span>';
+    $('honestVerdict').textContent='';
+    $('preCalib').textContent='—'; $('preOos').textContent='—'; $('preSplit').textContent='—'; $('preN').textContent='—';
+    $('preSurvBody').innerHTML='';
+    return;
+  }
+
+  const v = GRADE.verdict || {};
+  const wf = GRADE.walkForward || {};
+  $('preCalib').textContent = (v.calibratedCount ?? 0)+' / 96';
+  $('preOos').textContent = (v.oosSurvivorCount ?? 0)+' / 96';
+  $('preSplit').textContent = (wf.trainCount ?? '—')+' train / '+(wf.testCount ?? '—')+' test';
+  $('preN').textContent = fmtInt(GRADE.settledCount ?? 0);
+
+  const survivors = (GRADE.slots||[]).filter(s=>s.grade==='CALIBRATED' && s.survivesOutOfSample);
+
+  if(survivors.length===0){
+    $('verdict').textContent='NO DECISION-GRADE EDGE'; $('verdict').className='field-state quiet';
+    $('verdictSide').innerHTML='<span class="flat">0 of 96 slots survived Bonferroni calibration + out-of-sample validation — consistent with a random walk</span>';
+  } else {
+    $('verdict').textContent='EDGE DETECTED — '+survivors.length+' SLOT(S)'; $('verdict').className='field-state watch';
+    const top=survivors[0];
+    const sideLbl = top.side==='UP' ? '<span class="yes">UP / YES</span>' : '<span class="no">DOWN / NO</span>';
+    $('verdictSide').innerHTML = 'top validated slot '+top.label+' favors '+sideLbl+' — full-sample up-rate '+fmt(top.upRate*100,1)+'%, n='+top.n;
+  }
+  $('honestVerdict').innerHTML = '<b>Honest verdict:</b> '+(GRADE.honestVerdict||'—');
+
+  // Current-slot readout (row is engine-graded, not client math)
+  if(row){
+    // no separate tilt/ci/nobs fields anymore — the stats block above covers it
+  }
+
+  // Survivor table inside the PRE card
+  const sbody=$('preSurvBody'); sbody.innerHTML='';
+  if(!survivors.length){
+    sbody.innerHTML='<tr><td colspan="7" style="color:var(--mut2)">no slots survive — no decision-grade edge to display</td></tr>';
+  } else {
+    for(const s of survivors){
+      const side=s.side==='UP'?'up':'dn';
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td>'+s.label+'</td>'+
+        '<td><span class="side-tag '+side+'">'+s.side+'</span></td>'+
+        '<td>'+fmt(s.upRate*100,1)+'%</td>'+
+        '<td>'+fmt(s.ci[0]*100,1)+'–'+fmt(s.ci[1]*100,1)+'%</td>'+
+        '<td>'+s.n+'</td>'+
+        '<td class="edge-val '+side+'">'+(s.edge>=0?'+':'')+fmt(s.edge*100,1)+'pp</td>'+
+        '<td>'+fmt(s.trainUpRate*100,1)+'% → '+fmt(s.testUpRate*100,1)+'%</td>';
+      sbody.appendChild(tr);
+    }
+  }
+}
+
+function renderQuote(){
+  if(!SNAP) return;
+  const om=(SNAP.openMarkets||[]).find(m=>m.s==='active')||(SNAP.openMarkets||[])[0];
+  if(!om) return;
+  $('qsTicker').textContent = om.t;
+  $('qYesAsk').textContent = om.yAsk!=null?fmt(parseFloat(om.yAsk)*100,1)+'¢':'—';
+  $('qYesBid').textContent = om.yBid!=null?fmt(parseFloat(om.yBid)*100,1)+'¢':'—';
+  $('qNoAsk').textContent = om.nAsk!=null?fmt(parseFloat(om.nAsk)*100,1)+'¢':'—';
+  $('qNoBid').textContent = om.nBid!=null?fmt(parseFloat(om.nBid)*100,1)+'¢':'—';
+}
+
+function renderSpark(){
+  const svg=$('spark'); svg.innerHTML='';
+  const c=(SNAP&&SNAP.candles)||[];
+  if(c.length<2){ $('sparkLast').textContent='no live candles'; return; }
+  const closes=c.map(x=>parseFloat(x.close)).filter(v=>!isNaN(v));
+  if(closes.length<2) return;
+  const mn=Math.min(...closes), mx=Math.max(...closes), rng=(mx-mn)||1;
+  const W=100,H=54,pad=4;
+  const pts=closes.map((v,i)=>{
+    const x=pad+(i/(closes.length-1))*(W-pad*2);
+    const y=H-pad-((v-mn)/rng)*(H-pad*2);
+    return [x,y];
+  });
+  const up = closes[closes.length-1]>=closes[0];
+  const col = up?'#4E9B7E':'#A85A4A';
+  let d='M '+pts[0][0].toFixed(2)+' '+pts[0][1].toFixed(2);
+  for(let i=1;i<pts.length;i++) d+=' L '+pts[i][0].toFixed(2)+' '+pts[i][1].toFixed(2);
+  const ns='http://www.w3.org/2000/svg';
+  const area=document.createElementNS(ns,'path');
+  area.setAttribute('d', d+' L '+(W-pad).toFixed(2)+' '+(H-pad)+' L '+pad+' '+(H-pad)+' Z');
+  area.setAttribute('fill', col); area.setAttribute('opacity','0.1');
+  svg.appendChild(area);
+  const line=document.createElementNS(ns,'path');
+  line.setAttribute('d',d); line.setAttribute('fill','none'); line.setAttribute('stroke',col); line.setAttribute('stroke-width','1.6');
+  line.setAttribute('stroke-linejoin','round'); line.setAttribute('stroke-linecap','round');
+  svg.appendChild(line);
+  $('sparkLast').textContent = 'last '+fmt(closes[closes.length-1]*100,1)+'¢ · '+(up?'▲':'▼');
+}
+
+function renderEdges(){
+  const body=$('edgeBody'); body.innerHTML='';
+  if(!GRADE){ body.innerHTML='<tr><td colspan="7" style="color:var(--mut2)">engine unavailable</td></tr>'; return; }
+
+  // Validated edges: CALIBRATED + out-of-sample persistence.
+  const survivors = (GRADE.slots||[]).filter(s=>s.grade==='CALIBRATED' && s.survivesOutOfSample).sort((a,b)=>Math.abs(b.edge)-Math.abs(a.edge));
+  if(survivors.length){
+    for(const s of survivors){ body.appendChild(edgeRow(s)); }
+    return;
+  }
+
+  // No validated edge: say so plainly, then show unvalidated descriptive stats
+  // (full-sample tilt, n>=10) for transparency — explicitly NOT edges.
+  body.innerHTML='<tr><td colspan="7" style="color:var(--mut2)"><b>No decision-grade edge.</b> The slots below are unvalidated descriptive stats (full-sample up-rate) shown for transparency — they did NOT survive Bonferroni calibration + out-of-sample validation. Do not bet on them.</td></tr>';
+  const top = (GRADE.slots||[]).filter(s=>s.n>=10).sort((a,b)=>Math.abs(b.edge)-Math.abs(a.edge)).slice(0,10);
+  for(const s of top){ body.appendChild(edgeRow(s)); }
+}
+
+/* Build a table row from an engine-graded slot. The Train→Test column
+   makes the out-of-sample persistence explicit. */
+function edgeRow(s){
+  const sideCls = s.edge>=0 ? 'up' : 'dn';
+  const sideLbl = s.edge>=0 ? 'UP' : 'DOWN';
+  const persists = (s.trainUpRate>0.5 && s.testUpRate>0.5) || (s.trainUpRate<0.5 && s.testUpRate<0.5);
+  const mark = s.grade==='CALIBRATED' ? (s.survivesOutOfSample ? '✓ validated' : '✗ in-sample') : (persists ? '↣ persists' : '✗ flips');
+  const tr=document.createElement('tr');
+  tr.innerHTML='<td>'+slotLabel(s.slot)+'</td>'+
+    '<td><span class="side-tag '+sideCls+'">'+sideLbl+'</span></td>'+
+    '<td>'+fmt(s.upRate*100,1)+'%</td>'+
+    '<td>'+fmt(s.ci[0]*100,1)+'–'+fmt(s.ci[1]*100,1)+'%</td>'+
+    '<td>'+s.n+'</td>'+
+    '<td class="edge-val '+sideCls+'">'+(s.edge>=0?'+':'')+fmt(s.edge*100,1)+'pp</td>'+
+    '<td style="color:var(--mut2)">'+fmt(s.trainUpRate*100,1)+'% → '+fmt(s.testUpRate*100,1)+'% · '+mark+'</td>';
+  return tr;
+}
+
+function renderHeat(){
+  const wrap=$('heat'); wrap.innerHTML='';
+  const om=(SNAP&&SNAP.openMarkets||[]).find(m=>m.s==='active')||(SNAP&&SNAP.openMarkets||[])[0];
+  const nowIdx = om?slotIdx(om.c):-1;
+  for(let i=0;i<96;i++){
+    const s=slots[i];
+    const cell=document.createElement('div');
+    cell.className='cell'+(i===nowIdx?' now':'');
+    if(s.n>0){
+      const e=s.edge; // -0.5..0.5
+      // intensity 0..1
+      const intensity=Math.min(1, Math.abs(e)/0.12);
+      const col = e>=0 ? '78,155,126' : '168,90,74';
+      const alpha = 0.12 + intensity*0.6;
+      cell.style.background='rgba('+col+','+alpha.toFixed(2)+')';
+      cell.style.borderColor='rgba('+col+','+(0.3+intensity*0.3).toFixed(2)+')';
+      const tt=document.createElement('span'); tt.className='tt';
+      tt.textContent=slotLabel(i)+' · up '+fmt(s.upRate*100,1)+'% · n='+s.n;
+      cell.appendChild(tt);
+    }
+    wrap.appendChild(cell);
+  }
+}
+
+/* ---- Countdown + freshness clock (1s) ---- */
+function tick(){
+  // clock
+  if(SNAP){ $('clk').textContent = hhmmssUTC(new Date().toISOString()); }
+  // freshness
+  if(lastFetchMs){
+    const secs=Math.floor((Date.now()-lastFetchMs)/1000);
+    $('fresh').textContent = secs+'s ago';
+    if(secs>30) setLiveState('stale'); else if(SNAP) setLiveState('live');
+  }
+  // countdown
+  if(SNAP){
+    const om=(SNAP.openMarkets||[]).find(m=>m.s==='active')||(SNAP.openMarkets||[])[0];
+    if(om && om.c){
+      const closeMs=parseUTC(om.c).getTime();
+      const rem=closeMs-Date.now();
+      const cd=$('countdown');
+      if(rem<=0){ cd.textContent='settling'; cd.classList.add('settling'); }
+      else { const s=Math.ceil(rem/1000); const m=Math.floor(s/60), ss=s%60; cd.textContent=pad(m)+':'+pad(ss); cd.classList.remove('settling'); }
+    }
+  }
+}
+
+/* ---- EV calculator ---- */
+function calcEV(){
+  const side=$('evSide').value;
+  const win=parseFloat($('evWin').value)/100;
+  const price=parseFloat($('evPrice').value)/100; // dollars per $1 contract
+  const stake=parseFloat($('evStake').value);
+  if(!isFinite(win)||!isFinite(price)||!isFinite(stake)||price<=0||price>=1||stake<=0){
+    $('evPer1').textContent='—'; $('evDollars').textContent='—'; $('evBE').textContent='—';
+    $('evEdge').textContent='—'; $('evContracts').textContent='—'; $('evPayout').textContent='—';
+    return;
+  }
+  const contracts=stake/price;
+  const payout=contracts*1; // $1 per contract if correct
+  const evDollars=win*payout - stake;
+  const evPer1=evDollars/stake;
+  const be=win; // break-even price = win prob
+  const edgeVsPrice=win-price;
+  const setV=(id,v,cls)=>{const e=$(id); e.textContent=v; e.className='ov'+(cls?(' '+cls):''); };
+  setV('evPer1', (evPer1>=0?'+':'')+fmt(evPer1*100,2)+'%', evPer1>=0?'pos':'neg');
+  setV('evDollars', (evDollars>=0?'+':'')+'$'+fmt(evDollars,2), evDollars>=0?'pos':'neg');
+  setV('evBE', fmt(be*100,1)+'¢');
+  setV('evEdge', (edgeVsPrice>=0?'+':'')+fmt(edgeVsPrice*100,1)+'¢', edgeVsPrice>=0?'pos':'neg');
+  $('evContracts').textContent=fmt(contracts,2);
+  $('evPayout').textContent='$'+fmt(payout,2);
+}
+['evSide','evWin','evPrice','evStake'].forEach(id=>{ const e=$(id); e.addEventListener('input',calcEV); e.addEventListener('change',calcEV); });
+
+/* ---- Manual ledger (in-memory, server-persisted when configured) ----
+   The ledger loads from /api/ledger on boot and saves on every add/clear.
+   /api/ledger is dormant-ready: it persists to Vercel Blob only once the
+   Founder adds the BLOB_READ_WRITE_TOKEN secret; until then it no-ops and
+   the ledger stays in memory (resets on reload). The fallback is automatic. */
+let bets = [];
+async function loadLedgerRemote(){
+  try{
+    const r = await fetch(`${API}/api/ledger`, {cache:'no-store'});
+    if(!r.ok) return;
+    const j = await r.json();
+    if(Array.isArray(j.ledger)) bets = j.ledger;
+  }catch(_){ /* in-memory fallback */ }
+}
+let saveTimer = null;
+function saveLedgerRemote(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    saveTimer = null;
+    try{
+      await fetch(`${API}/api/ledger`, {
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body: JSON.stringify({ledger: bets}),
+      });
+    }catch(_){ /* in-memory fallback */ }
+  }, 300);
+}
+function betPnL(b){
+  const price=parseFloat(b.price)/100, stake=parseFloat(b.stake);
+  if(!isFinite(price)||!isFinite(stake)||price<=0||stake<=0) return 0;
+  if(b.result==='win') return (stake/price)*1 - stake;
+  if(b.result==='loss') return -stake;
+  return 0; // pending
+}
+function renderLedger(){
+  const body=$('ledBody'); body.innerHTML='';
+  const stats=$('ledStats');
+  const realized=bets.filter(b=>b.result!=='pending');
+  const totalStaked=bets.reduce((a,b)=>a+parseFloat(b.stake||0),0);
+  const realizedPnL=realized.reduce((a,b)=>a+betPnL(b),0);
+  const wins=realized.filter(b=>b.result==='win').length;
+  const winRate=realized.length?wins/realized.length:0;
+  stats.innerHTML='';
+  const cell=(k,v,cls)=>{const d=document.createElement('div'); d.className='led-stat'; d.innerHTML='<span class="k">'+k+'</span><span class="v '+(cls||'')+'">'+v+'</span>'; return d;};
+  stats.appendChild(cell('Bets', bets.length));
+  stats.appendChild(cell('Realized', realized.length));
+  stats.appendChild(cell('Win rate', realized.length?fmt(winRate*100,0)+'%':'—'));
+  stats.appendChild(cell('Cumulative P&L', (realizedPnL>=0?'+':'')+'$'+fmt(realizedPnL,2), realizedPnL>0?'pos':realizedPnL<0?'neg':''));
+  // equity curve
+  const eq=$('eq'); eq.innerHTML='';
+  if(realized.length<1){
+    const ns='http://www.w3.org/2000/svg';
+    const t=document.createElementNS(ns,'text'); t.setAttribute('x','50'); t.setAttribute('y','48'); t.setAttribute('text-anchor','middle');
+    t.setAttribute('fill','#525d6b'); t.setAttribute('font-size','7'); t.setAttribute('font-family','General Sans, sans-serif');
+    t.textContent='no realized bets yet'; eq.appendChild(t);
+  } else {
+    let cum=0; const pts=[0];
+    for(const b of realized){ cum+=betPnL(b); pts.push(cum); }
+    const mn=Math.min(0,...pts), mx=Math.max(0,...pts); const rng=(mx-mn)||1;
+    const W=100,H=90,pad=6;
+    const coords=pts.map((v,i)=>[pad+(i/(pts.length-1))*(W-pad*2), H-pad-((v-mn)/rng)*(H-pad*2)]);
+    let d='M '+coords[0][0].toFixed(2)+' '+coords[0][1].toFixed(2);
+    for(let i=1;i<coords.length;i++) d+=' L '+coords[i][0].toFixed(2)+' '+coords[i][1].toFixed(2);
+    const ns='http://www.w3.org/2000/svg';
+    const zeroY=H-pad-((0-mn)/rng)*(H-pad*2);
+    const zl=document.createElementNS(ns,'line'); zl.setAttribute('x1',pad); zl.setAttribute('x2',W-pad); zl.setAttribute('y1',zeroY); zl.setAttribute('y2',zeroY);
+    zl.setAttribute('stroke','#1f2832'); zl.setAttribute('stroke-dasharray','2 3'); eq.appendChild(zl);
+    const col=cum>=0?'#4E9B7E':'#A85A4A';
+    const area=document.createElementNS(ns,'path');
+    area.setAttribute('d', d+' L '+coords[coords.length-1][0].toFixed(2)+' '+(H-pad)+' L '+coords[0][0].toFixed(2)+' '+(H-pad)+' Z');
+    area.setAttribute('fill',col); area.setAttribute('opacity','0.1'); eq.appendChild(area);
+    const line=document.createElementNS(ns,'path'); line.setAttribute('d',d); line.setAttribute('fill','none'); line.setAttribute('stroke',col);
+    line.setAttribute('stroke-width','1.5'); line.setAttribute('stroke-linejoin','round'); line.setAttribute('stroke-linecap','round'); eq.appendChild(line);
+  }
+  // table
+  if(!bets.length){ $('ledEmpty').style.display='block'; }
+  else { $('ledEmpty').style.display='none'; for(const b of bets){
+    const pnl=betPnL(b); const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+b.slot+'</td><td><span class="side-tag '+(b.side==='yes'?'up':'dn')+'">'+b.side.toUpperCase()+'</span></td>'+
+      '<td>'+fmt(b.price,1)+'</td><td>$'+fmt(b.stake,2)+'</td><td>'+b.result+'</td>'+
+      '<td style="color:'+(pnl>0?'var(--jade)':pnl<0?'var(--oxblood)':'var(--mut2)')+'">'+(pnl>=0?'+':'')+'$'+fmt(pnl,2)+'</td>';
+    body.appendChild(tr);
+  }}
+}
+function addBet(){
+  const slot=$('lgSlot').value.trim()||'manual';
+  const side=$('lgSide').value;
+  const price=parseFloat($('lgPrice').value);
+  const stake=parseFloat($('lgStake').value);
+  const result=$('lgResult').value;
+  if(!isFinite(price)||!isFinite(stake)||price<=0||stake<=0){ alert('Enter a valid price (¢) and stake ($).'); return; }
+  bets.push({slot,side,price,stake,result});
+  $('lgSlot').value=''; $('lgPrice').value=''; $('lgStake').value='';
+  saveLedgerRemote();
+  renderLedger();
+}
+$('lgAdd').addEventListener('click',addBet);
+$('lgSample').addEventListener('click',()=>{ $('lgSlot').value='05:00 UTC'; $('lgSide').value='yes'; $('lgPrice').value='54'; $('lgStake').value='100'; $('lgResult').value='win'; addBet(); });
+$('lgClear').addEventListener('click',()=>{ if(bets.length&&confirm('Clear all bets from the ledger?')){ bets=[]; saveLedgerRemote(); renderLedger(); } });
+
+/* ---- Boot ---- */
+function boot(){
+  loadLedgerRemote().then(renderLedger).catch(()=>renderLedger()); calcEV();
+  tick();
+  fetchSnapshot();
+  clockTimer=setInterval(tick,1000);
+  fetchTimer=setInterval(()=>{ if(!document.hidden) fetchSnapshot(); }, REFRESH_MS);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ tick(); fetchSnapshot(); } });
+}
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "framework": null,
+  "version": 2,
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 10,
+      "memory": 256
+    }
+  },
+  "routes": [
+    { "src": "/api/health", "dest": "/api/health" },
+    { "src": "/api/snapshot", "dest": "/api/snapshot" },
+    { "src": "/api/series", "dest": "/api/series" },
+    { "src": "/api/grade", "dest": "/api/grade" },
+    { "src": "/api/cutoff", "dest": "/api/cutoff" },
+    { "src": "/api/ledger", "dest": "/api/ledger" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}

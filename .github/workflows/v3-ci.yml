@@ -1,0 +1,49 @@
+name: V3 CI
+
+on:
+  push:
+    branches: [v3/production]
+  pull_request:
+    branches: [v3/production]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Syntax + smoke (Node 20)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Syntax-check every API file
+        run: |
+          set -e
+          fail=0
+          for f in api/*.js api/_lib/*.js; do
+            [ -f "$f" ] || continue
+            echo "node --check $f"
+            node --check "$f" || fail=1
+          done
+          exit $fail
+
+      - name: Smoke-import API modules
+        run: |
+          node --input-type=module -e '
+            await import("./api/_lib/kalshi.js");
+            await import("./api/_lib/pre.js");
+            await import("./api/_lib/persist.js");
+            await import("./api/health.js");
+            await import("./api/snapshot.js");
+            await import("./api/series.js");
+            await import("./api/cutoff.js");
+            await import("./api/grade.js");
+            await import("./api/ledger.js");
+            console.log("all modules import cleanly");
+          '

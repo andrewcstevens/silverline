@@ -1,0 +1,16 @@
+{
+  "name": "silverline-v3",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Silverline V3 — BTC 15-Min Edge Finder. Read-only Kalshi public-data relay (Vercel serverless).",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "for f in api/*.js api/_lib/*.js; do node --check \"$f\" || exit 1; done"
+  },
+  "dependencies": {
+    "@vercel/blob": "^0.27.0"
+  }
+}
